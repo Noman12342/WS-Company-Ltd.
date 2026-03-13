@@ -617,7 +617,7 @@
 
     // --- GOOGLE SHEETS DATABASE URL ---
     // Apnar dewa notun Web App URL ti ekhane set kora holo
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwkpXcsDcWdf533suWnExabIy8qa_ewZvsv_I3sCiER1PPwNflxHEbKD-S04t4y60ld/exec"; 
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzI9enYQrMpyujq0pxY4p1HJ4Egd5K3g95tpOTUnXSq4kJ0x6Jbj1kkryYWCLY606j6/exec"; 
 
     // --- Loading State Handlers ---
     function showLoading(text) {
@@ -773,13 +773,25 @@
                         let statusColor = u.status === 'approved' ? 'text-green-600 bg-green-100' : 'text-orange-600 bg-orange-100';
                         let roleColor = u.role === 'Boss' ? 'text-purple-600 bg-purple-100' : 'text-blue-600 bg-blue-100';
                         
+                        // Login Time & Count formatting
+                        let lastActive = u.lastLogin !== "Never" ? new Date(u.lastLogin).toLocaleString('en-GB', {day: 'numeric', month: 'short', hour: '2-digit', minute:'2-digit'}) : "Never logged in";
+                        let todayLogins = u.loginsToday;
+
                         list.innerHTML += `
                             <div class="bg-white p-3 rounded-xl border border-gray-200 shadow-sm">
-                                <div class="font-bold text-gray-800 text-sm mb-1">${u.name}</div>
-                                <div class="text-xs text-gray-500 mb-2">${u.email}</div>
-                                <div class="flex space-x-2">
-                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded ${roleColor} border border-opacity-20">${u.role}</span>
-                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded ${statusColor} border border-opacity-20">${u.status}</span>
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <div class="font-bold text-gray-800 text-sm mb-1">${u.name}</div>
+                                        <div class="text-xs text-gray-500 mb-2">${u.email}</div>
+                                    </div>
+                                    <div class="flex flex-col items-end space-y-1">
+                                        <span class="text-[10px] font-bold px-2 py-0.5 rounded ${roleColor} border border-opacity-20">${u.role}</span>
+                                        <span class="text-[10px] font-bold px-2 py-0.5 rounded ${statusColor} border border-opacity-20">${u.status}</span>
+                                    </div>
+                                </div>
+                                <div class="mt-2 pt-2 border-t border-gray-100 flex justify-between items-center text-[11px] text-gray-500">
+                                    <span><i class="fa-solid fa-clock-rotate-left mr-1"></i> ${lastActive}</span>
+                                    <span class="font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md shadow-sm border border-blue-100"><i class="fa-solid fa-bolt text-yellow-500 mr-1"></i>Today: ${todayLogins}</span>
                                 </div>
                             </div>
                         `;
