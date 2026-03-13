@@ -189,7 +189,10 @@
     <div id="customer-page" class="page-content px-4 min-h-screen bg-gray-50">
         <div class="py-4">
             <div class="flex justify-between items-center mb-4">
-                <h2 class="text-lg font-bold text-gray-800">Customers</h2>
+                <h2 class="text-lg font-bold text-gray-800 flex items-center">
+                    Customers 
+                    <span id="total-customers-count" class="text-sm font-bold text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full ml-2">0</span>
+                </h2>
                 <button onclick="openAddCustomerModal()" class="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium shadow hover:bg-blue-700 transition">
                     <i class="fa-solid fa-plus mr-1"></i> Add
                 </button>
@@ -1534,6 +1537,12 @@
 
     // Render Customers
     function renderCustomers() {
+        // Total customer shongkha update korar jonno
+        const countEl = document.getElementById('total-customers-count');
+        if (countEl) {
+            countEl.innerText = customers.length;
+        }
+
         const list = document.getElementById('customer-list');
         list.innerHTML = '';
 
