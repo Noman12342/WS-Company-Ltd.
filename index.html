@@ -32,7 +32,7 @@
         }
         .page-content {
             display: none;
-            padding-top: 60px; /* Space for fixed header */
+            padding-top: 90px; /* Header er niche space barano holo jate vitore dhuke na jay */
             padding-bottom: 70px; /* Space for fixed bottom nav */
             animation: fadeIn 0.3s;
         }
@@ -42,6 +42,14 @@
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
+        }
+        /* Truck moving animation for working status */
+        @keyframes drive {
+            0%, 100% { transform: translateX(-3px); }
+            50% { transform: translateX(3px); }
+        }
+        .animate-drive {
+            animation: drive 1s infinite ease-in-out;
         }
         .nav-item.active {
             color: #2563eb; /* text-blue-600 */
@@ -180,7 +188,7 @@
     <div id="customer-page" class="page-content px-4 min-h-screen bg-gray-50">
         <div class="py-4">
             <div class="flex justify-between items-center mb-4">
-                <h2 class="text-lg font-bold text-gray-800">Amar Customers</h2>
+                <h2 class="text-lg font-bold text-gray-800">Customers</h2>
                 <button onclick="openAddCustomerModal()" class="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium shadow hover:bg-blue-700 transition">
                     <i class="fa-solid fa-plus mr-1"></i> Add
                 </button>
@@ -1173,12 +1181,12 @@
         employees.forEach((emp) => {
             let actionBtn = '';
             if(emp.currentStatus === 'Working') {
-                actionBtn = `<button onclick="event.stopPropagation(); openWorkStatusModal(${emp.id})" class="bg-yellow-500 text-white text-xs px-3 py-2 rounded-lg shadow hover:bg-yellow-600 active:scale-95 transition flex items-center">
-                    <i class="fa-solid fa-spinner fa-spin mr-1.5"></i> Working
+                actionBtn = `<button onclick="event.stopPropagation(); openWorkStatusModal(${emp.id})" class="bg-yellow-500 text-white text-sm w-9 h-9 rounded-lg shadow hover:bg-yellow-600 active:scale-95 transition flex items-center justify-center">
+                    <i class="fa-solid fa-truck-fast animate-drive"></i>
                 </button>`;
             } else {
-                actionBtn = `<button onclick="event.stopPropagation(); openAssignWork(${emp.id})" class="bg-blue-600 text-white text-xs px-3 py-2 rounded-lg shadow hover:bg-blue-700 active:scale-95 transition flex items-center">
-                    <i class="fa-solid fa-paper-plane mr-1.5"></i> Send to Work
+                actionBtn = `<button onclick="event.stopPropagation(); openAssignWork(${emp.id})" class="bg-blue-600 text-white text-sm w-9 h-9 rounded-lg shadow hover:bg-blue-700 active:scale-95 transition flex items-center justify-center">
+                    <i class="fa-solid fa-paper-plane"></i>
                 </button>`;
             }
 
@@ -1192,7 +1200,7 @@
                     </div>
                     <div class="flex space-x-2">
                         ${actionBtn}
-                        <button onclick="event.stopPropagation(); deleteEmployee(${emp.id});" class="bg-red-100 text-red-600 text-xs px-2.5 py-2 rounded-lg shadow-sm hover:bg-red-200 active:scale-95 transition flex items-center">
+                        <button onclick="event.stopPropagation(); deleteEmployee(${emp.id});" class="bg-red-100 text-red-600 text-sm w-9 h-9 flex items-center justify-center rounded-lg shadow-sm hover:bg-red-200 active:scale-95 transition">
                             <i class="fa-solid fa-trash"></i>
                         </button>
                     </div>
