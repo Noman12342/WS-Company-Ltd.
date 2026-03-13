@@ -159,8 +159,14 @@
             <h1 class="text-xl font-bold tracking-wide leading-none"><i class="fa-solid fa-droplet mr-2"></i>WS Company Ltd.</h1>
             <span id="realtime-clock" class="ml-2 text-[10px] font-semibold text-blue-100 tracking-wider mb-0.5 whitespace-nowrap"></span>
         </div>
-        <div onclick="logoutUser()" title="Click to Logout" class="text-sm bg-blue-700 hover:bg-blue-800 transition cursor-pointer px-2 py-1 rounded-full shrink-0 flex items-center shadow ml-2">
-            <i class="fa-solid fa-user-tie mr-1"></i><span id="logged-user-name" class="truncate max-w-[60px]">Admin</span>
+        <div class="flex items-center">
+            <!-- User Management Button (Only for Boss) -->
+            <button id="manage-users-btn" onclick="openUserManagement()" class="hidden mr-2 text-white bg-blue-800/50 hover:bg-blue-800 p-1.5 rounded-full shadow transition" title="Manage Users">
+                <i class="fa-solid fa-users-gear"></i>
+            </button>
+            <div onclick="logoutUser()" title="Click to Logout" class="text-sm bg-blue-700 hover:bg-blue-800 transition cursor-pointer px-2 py-1 rounded-full shrink-0 flex items-center shadow ml-1">
+                <i class="fa-solid fa-user-tie mr-1"></i><span id="logged-user-name" class="truncate max-w-[60px]">Admin</span>
+            </div>
         </div>
     </header>
 
@@ -180,7 +186,7 @@
             <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-4">
                 <div class="flex justify-between items-center mb-3 border-b pb-2">
                     <h3 class="font-bold text-gray-700 text-sm"><i class="fa-solid fa-users-gear text-blue-500 mr-2"></i>Assign Work to Employees</h3>
-                    <button onclick="openAddEmployeeModal()" class="text-blue-600 hover:text-blue-800 bg-blue-50 w-8 h-8 rounded-full flex items-center justify-center shadow-sm active:bg-blue-100"><i class="fa-solid fa-plus"></i></button>
+                    <button id="add-emp-btn" onclick="openAddEmployeeModal()" class="text-blue-600 hover:text-blue-800 bg-blue-50 w-8 h-8 rounded-full flex items-center justify-center shadow-sm active:bg-blue-100 admin-only"><i class="fa-solid fa-plus"></i></button>
                 </div>
                 <div id="employee-list" class="space-y-3">
                     <!-- Employees will be injected here via JS -->
@@ -197,7 +203,7 @@
                     Customers 
                     <span id="total-customers-count" class="text-sm font-bold text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full ml-2">0</span>
                 </h2>
-                <button onclick="openAddCustomerModal()" class="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium shadow hover:bg-blue-700 transition">
+                <button id="add-cust-btn" onclick="openAddCustomerModal()" class="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium shadow hover:bg-blue-700 transition admin-only">
                     <i class="fa-solid fa-plus mr-1"></i> Add
                 </button>
             </div>
@@ -214,7 +220,7 @@
             <h2 class="text-lg font-bold text-gray-800 mb-4">Customer Billing</h2>
             
             <!-- Create Bill Form -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
+            <div id="create-bill-section" class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6 admin-only">
                 <h3 class="font-bold text-gray-700 mb-3">Create New Bill</h3>
                 <div class="space-y-3">
                     <div>
@@ -533,6 +539,24 @@
         </div>
     </div>
 
+    <!-- User Management Modal (For Boss Only) -->
+    <div id="user-management-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[60] hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl w-full max-w-sm h-[80vh] flex flex-col shadow-2xl overflow-hidden">
+            <div class="flex justify-between items-center p-4 bg-blue-600 text-white border-b border-blue-700">
+                <h3 class="text-lg font-bold"><i class="fa-solid fa-users-gear mr-2"></i>Registered Users</h3>
+                <button onclick="closeUserManagement()" class="text-white hover:text-gray-200"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            
+            <div class="p-3 bg-yellow-50 text-yellow-800 text-xs text-center border-b border-yellow-200 font-semibold">
+                <i class="fa-solid fa-circle-info mr-1"></i> User er Role o Status change korte Google Sheet use korun.
+            </div>
+
+            <div id="users-list-container" class="p-4 overflow-y-auto space-y-3 flex-1 bg-gray-50">
+                <!-- User list injected here -->
+            </div>
+        </div>
+    </div>
+
 </div>
 
 <!-- JavaScript Logic -->
@@ -591,10 +615,9 @@
         });
     }
 
-
     // --- GOOGLE SHEETS DATABASE URL ---
     // Apnar dewa notun Web App URL ti ekhane set kora holo
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyhq6YnTgon2QGkSXHW9_B4mgUjm85naxO_TE89KUo-gd4KIGNv98t8SyHn0edFrSHT/exec"; 
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwkpXcsDcWdf533suWnExabIy8qa_ewZvsv_I3sCiER1PPwNflxHEbKD-S04t4y60ld/exec"; 
 
     // --- Loading State Handlers ---
     function showLoading(text) {
@@ -699,10 +722,81 @@
         document.getElementById('logged-user-name').innerText = user.name;
         document.getElementById('receipt-auth-name').innerText = user.name; // Update memo auth name
         
+        // Apply RBAC (Role-Based Access Control) Logic
+        applyRoleRestrictions(user.role);
+
         // Start loading the database
         loadDataFromDatabase();
     }
 
+    function applyRoleRestrictions(role) {
+        const isAdmin = role === 'Boss';
+        
+        // Toggle Admin specific elements
+        const adminElements = document.querySelectorAll('.admin-only');
+        adminElements.forEach(el => {
+            if(isAdmin) {
+                el.classList.remove('hidden');
+            } else {
+                el.classList.add('hidden');
+            }
+        });
+
+        // Show User management button only for Boss
+        if(isAdmin) {
+            document.getElementById('manage-users-btn').classList.remove('hidden');
+        } else {
+            document.getElementById('manage-users-btn').classList.add('hidden');
+        }
+
+        // We will also use the `currentUserRole` variable to hide dynamic buttons (like delete/edit) when rendering
+        currentUserRole = role; 
+    }
+
+    let currentUserRole = "Moderator"; // Default fallback
+
+
+    // --- User Management Logic (Boss Only) ---
+    function openUserManagement() {
+        if(currentUserRole !== 'Boss') return;
+        
+        document.getElementById('user-management-modal').classList.remove('hidden');
+        const list = document.getElementById('users-list-container');
+        list.innerHTML = '<div class="text-center py-5"><i class="fa-solid fa-spinner fa-spin text-blue-500 text-2xl"></i><p class="mt-2 text-gray-500 text-sm">Loading users...</p></div>';
+
+        fetch(`${SCRIPT_URL}?action=load_users`)
+            .then(res => res.json())
+            .then(data => {
+                list.innerHTML = '';
+                if(data.status === 'success' && data.users.length > 0) {
+                    data.users.forEach(u => {
+                        let statusColor = u.status === 'approved' ? 'text-green-600 bg-green-100' : 'text-orange-600 bg-orange-100';
+                        let roleColor = u.role === 'Boss' ? 'text-purple-600 bg-purple-100' : 'text-blue-600 bg-blue-100';
+                        
+                        list.innerHTML += `
+                            <div class="bg-white p-3 rounded-xl border border-gray-200 shadow-sm">
+                                <div class="font-bold text-gray-800 text-sm mb-1">${u.name}</div>
+                                <div class="text-xs text-gray-500 mb-2">${u.email}</div>
+                                <div class="flex space-x-2">
+                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded ${roleColor} border border-opacity-20">${u.role}</span>
+                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded ${statusColor} border border-opacity-20">${u.status}</span>
+                                </div>
+                            </div>
+                        `;
+                    });
+                } else {
+                    list.innerHTML = '<p class="text-center text-gray-500 text-sm mt-5">No users found.</p>';
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                list.innerHTML = '<p class="text-center text-red-500 text-sm mt-5">Failed to load users.</p>';
+            });
+    }
+
+    function closeUserManagement() {
+        document.getElementById('user-management-modal').classList.add('hidden');
+    }
 
     // --- Database Sync Functions ---
     function saveDataToDatabase() {
@@ -1238,13 +1332,23 @@
         empList.innerHTML = '';
 
         if(employees.length === 0) {
-            empList.innerHTML = '<p class="text-sm text-gray-500 text-center py-2">Kono employee nai. + icon e click kore add korun.</p>';
+            empList.innerHTML = '<p class="text-sm text-gray-500 text-center py-2">Kono employee nai.</p>';
         }
 
+        const isAdmin = currentUserRole === 'Boss';
+
         employees.forEach((emp) => {
-            let actionBtn = `<button onclick="event.stopPropagation(); openAssignWork(${emp.id})" class="bg-blue-600 text-white text-sm w-9 h-9 rounded-lg shadow hover:bg-blue-700 active:scale-95 transition flex items-center justify-center">
-                    <i class="fa-solid fa-paper-plane"></i>
-                </button>`;
+            let actionBtn = '';
+            let deleteBtn = '';
+
+            if (isAdmin) {
+                actionBtn = `<button onclick="event.stopPropagation(); openAssignWork(${emp.id})" class="bg-blue-600 text-white text-sm w-9 h-9 rounded-lg shadow hover:bg-blue-700 active:scale-95 transition flex items-center justify-center">
+                        <i class="fa-solid fa-paper-plane"></i>
+                    </button>`;
+                deleteBtn = `<button onclick="event.stopPropagation(); deleteEmployee(${emp.id});" class="bg-red-100 text-red-600 text-sm w-9 h-9 flex items-center justify-center rounded-lg shadow-sm hover:bg-red-200 active:scale-95 transition">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>`;
+            }
 
             empList.innerHTML += `
                 <div onclick="openEmployeeDetails(${emp.id})" class="flex justify-between items-center bg-gray-50 p-3 rounded-lg border border-gray-200 hover:bg-gray-100 transition cursor-pointer">
@@ -1256,9 +1360,7 @@
                     </div>
                     <div class="flex space-x-2">
                         ${actionBtn}
-                        <button onclick="event.stopPropagation(); deleteEmployee(${emp.id});" class="bg-red-100 text-red-600 text-sm w-9 h-9 flex items-center justify-center rounded-lg shadow-sm hover:bg-red-200 active:scale-95 transition">
-                            <i class="fa-solid fa-trash"></i>
-                        </button>
+                        ${deleteBtn}
                     </div>
                 </div>
             `;
@@ -1606,13 +1708,25 @@
         list.innerHTML = '';
 
         if(customers.length === 0) {
-            list.innerHTML = '<p class="text-center text-gray-500 mt-10">Kono customer nai. Add korun.</p>';
+            list.innerHTML = '<p class="text-center text-gray-500 mt-10">Kono customer nai.</p>';
             return;
         }
+
+        const isAdmin = currentUserRole === 'Boss';
 
         customers.forEach(c => {
             let freqColor = c.frequency === 'Daily' ? 'bg-green-100 text-green-800' : 
                            (c.frequency === '1 Day Interval' ? 'bg-yellow-100 text-yellow-800' : 'bg-orange-100 text-orange-800');
+
+            let actionButtons = '';
+            if (isAdmin) {
+                actionButtons = `
+                    <div class="flex space-x-3 mt-1">
+                        <button onclick="event.stopPropagation(); openEditCustomer(${c.id});" class="text-blue-600 text-sm hover:text-blue-800"><i class="fa-solid fa-pen-to-square"></i></button>
+                        <button onclick="event.stopPropagation(); deleteCustomer(${c.id});" class="text-red-500 text-sm hover:text-red-700"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                `;
+            }
 
             list.innerHTML += `
                 <div onclick="openCustomerDetails(${c.id})" class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition">
@@ -1621,10 +1735,7 @@
                     </div>
                     <div class="flex flex-col items-end">
                         <span class="text-xs font-semibold px-2 py-1 rounded-md ${freqColor} mb-2">${c.frequency}</span>
-                        <div class="flex space-x-3 mt-1">
-                            <button onclick="event.stopPropagation(); openEditCustomer(${c.id});" class="text-blue-600 text-sm hover:text-blue-800"><i class="fa-solid fa-pen-to-square"></i></button>
-                            <button onclick="event.stopPropagation(); deleteCustomer(${c.id});" class="text-red-500 text-sm hover:text-red-700"><i class="fa-solid fa-trash"></i></button>
-                        </div>
+                        ${actionButtons}
                     </div>
                 </div>
             `;
@@ -1783,12 +1894,22 @@
             list.innerHTML = '<p class="text-center text-gray-500 text-sm">Ekhono kono bill banano hoyni.</p>';
             return;
         }
+        
+        const isAdmin = currentUserRole === 'Boss';
 
         bills.forEach(b => {
             let isPaid = b.status === "Paid";
-            let statusHtml = isPaid ? 
-                `<span class="text-xs font-bold text-green-600 bg-green-100 px-2 py-1 rounded"><i class="fa-solid fa-check mr-1"></i>Paid</span>` : 
-                `<button onclick="markBillPaid(${b.id})" class="text-xs font-bold text-white bg-red-500 hover:bg-red-600 px-2 py-1 rounded shadow"><i class="fa-solid fa-hand-holding-dollar mr-1"></i>Mark Paid</button>`;
+            let statusHtml = '';
+            
+            if (isPaid) {
+                statusHtml = `<span class="text-xs font-bold text-green-600 bg-green-100 px-2 py-1 rounded"><i class="fa-solid fa-check mr-1"></i>Paid</span>`;
+            } else {
+                if (isAdmin) {
+                    statusHtml = `<button onclick="markBillPaid(${b.id})" class="text-xs font-bold text-white bg-red-500 hover:bg-red-600 px-2 py-1 rounded shadow"><i class="fa-solid fa-hand-holding-dollar mr-1"></i>Mark Paid</button>`;
+                } else {
+                    statusHtml = `<span class="text-xs font-bold text-red-600 bg-red-100 px-2 py-1 rounded">Unpaid</span>`;
+                }
+            }
 
             list.innerHTML += `
                 <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center">
