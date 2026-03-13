@@ -1,0 +1,1598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>WS Company Ltd.</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- html2canvas for Image Generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        /* Mobile app feel constraints */
+        body {
+            background-color: #f3f4f6;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .app-container {
+            max-width: 480px; /* Mobile width for desktop viewing */
+            margin: 0 auto;
+            background-color: white;
+            min-height: 100vh;
+            position: relative;
+            box-shadow: 0 0 15px rgba(0,0,0,0.1);
+        }
+        /* Hide scrollbar for clean look */
+        ::-webkit-scrollbar {
+            width: 0px;
+            background: transparent;
+        }
+        .page-content {
+            display: none;
+            padding-top: 60px; /* Space for fixed header */
+            padding-bottom: 70px; /* Space for fixed bottom nav */
+            animation: fadeIn 0.3s;
+        }
+        .page-content.active {
+            display: block;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .nav-item.active {
+            color: #2563eb; /* text-blue-600 */
+        }
+        .nav-item {
+            color: #9ca3af; /* text-gray-400 */
+            transition: color 0.2s;
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+
+    <!-- Sync Loading Overlay for Database -->
+    <div id="loading-overlay" class="fixed inset-0 bg-white/80 z-[100] hidden flex-col items-center justify-center backdrop-blur-sm">
+        <i class="fa-solid fa-cloud-arrow-up fa-spin text-5xl text-blue-600 mb-4"></i>
+        <p class="text-blue-800 font-bold text-lg animate-pulse">Syncing with Google Sheets...</p>
+    </div>
+
+    <!-- Top Header -->
+    <header class="bg-blue-600 text-white p-4 fixed top-0 w-full max-w-[480px] z-50 flex justify-between items-center shadow-md rounded-b-lg">
+        <div class="flex items-center">
+            <h1 class="text-xl font-bold tracking-wide"><i class="fa-solid fa-droplet mr-2"></i>WS Company Ltd.</h1>
+            <span id="realtime-clock" class="ml-2 text-xs font-semibold bg-blue-800/40 px-1.5 py-0.5 rounded shadow-inner tracking-wider"></span>
+        </div>
+        <div class="text-sm bg-blue-700 px-2 py-1 rounded-full shrink-0"><i class="fa-solid fa-user-tie mr-1"></i>Boss</div>
+    </header>
+
+    <!-- 1. Home Page -->
+    <div id="home-page" class="page-content active px-4 min-h-screen bg-gray-50">
+        <div class="py-4">
+            <h2 class="text-lg font-bold text-gray-800 mb-4">Today's Tasks</h2>
+            
+            <!-- Single Stat Card for Today's Deliveries -->
+            <div onclick="openTodaysCustomers()" class="bg-blue-100 p-5 rounded-xl shadow-sm border border-blue-200 text-center cursor-pointer hover:bg-blue-200 transition mb-6 active:scale-95 transform duration-150">
+                <div class="text-blue-600 text-4xl font-extrabold" id="today-delivery-stat">0</div>
+                <div class="text-sm text-blue-800 font-bold mt-2">Today's Water Supply</div>
+                <div class="text-xs text-blue-600 mt-1 opacity-80"><i class="fa-solid fa-hand-pointer mr-1"></i>Tap to see customer details</div>
+            </div>
+
+            <!-- Employee Assignment Section -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-4">
+                <div class="flex justify-between items-center mb-3 border-b pb-2">
+                    <h3 class="font-bold text-gray-700 text-sm"><i class="fa-solid fa-users-gear text-blue-500 mr-2"></i>Assign Work to Employees</h3>
+                    <button onclick="openAddEmployeeModal()" class="text-blue-600 hover:text-blue-800 bg-blue-50 w-8 h-8 rounded-full flex items-center justify-center shadow-sm active:bg-blue-100"><i class="fa-solid fa-plus"></i></button>
+                </div>
+                <div id="employee-list" class="space-y-3">
+                    <!-- Employees will be injected here via JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Customer Page -->
+    <div id="customer-page" class="page-content px-4 min-h-screen bg-gray-50">
+        <div class="py-4">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-bold text-gray-800">Amar Customers</h2>
+                <button onclick="openAddCustomerModal()" class="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium shadow hover:bg-blue-700 transition">
+                    <i class="fa-solid fa-plus mr-1"></i> Add
+                </button>
+            </div>
+
+            <div id="customer-list" class="space-y-3">
+                <!-- Customers will be injected here via JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Billing Page -->
+    <div id="billing-page" class="page-content px-4 min-h-screen bg-gray-50">
+        <div class="py-4">
+            <h2 class="text-lg font-bold text-gray-800 mb-4">Customer Billing</h2>
+            
+            <!-- Create Bill Form -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
+                <h3 class="font-bold text-gray-700 mb-3">Create New Bill</h3>
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1">Select Customer</label>
+                        <select id="bill-customer-select" onchange="onCustomerSelectForBill()" class="w-full border border-gray-300 rounded-lg p-2 bg-gray-50 focus:outline-none focus:border-blue-500">
+                            <!-- Options injected by JS -->
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1">Details</label>
+                        <div class="relative">
+                            <input type="text" id="bill-details" placeholder="e.g. Bill for current month" class="w-full border border-gray-300 rounded-lg p-2 pr-10 bg-gray-50 focus:outline-none focus:border-blue-500">
+                            <button onclick="openManualBillingCalendar()" class="absolute right-2 top-[6px] text-blue-600 hover:text-blue-800 p-1 transition-colors"><i class="fa-regular fa-calendar-days text-xl"></i></button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1">Amount</label>
+                        <input type="number" id="bill-amount" placeholder="e.g. 500" class="w-full border border-gray-300 rounded-lg p-2 bg-gray-50 focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1">Billing Date</label>
+                        <input type="date" id="bill-date" onchange="onCustomerSelectForBill()" class="w-full border border-gray-300 rounded-lg p-2 bg-gray-50 focus:outline-none focus:border-blue-500">
+                    </div>
+                    <button onclick="generateAndShareBill(event)" class="w-full bg-blue-600 text-white font-bold py-2 rounded-lg shadow-md hover:bg-blue-700 transition mt-2 flex justify-center items-center">
+                        <i class="fa-solid fa-file-invoice mr-2"></i> Send Bill to Customer
+                    </button>
+                </div>
+            </div>
+
+            <!-- Recent Bills -->
+            <h3 class="font-bold text-gray-700 mb-3">Recent Bills</h3>
+            <div id="bill-list" class="space-y-3">
+                <!-- Bills will be injected here via JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav class="fixed bottom-0 w-full max-w-[480px] bg-white border-t border-gray-200 flex justify-around items-center h-[65px] z-50 rounded-t-xl shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
+        <button onclick="switchPage('home')" id="nav-home" class="nav-item active flex flex-col items-center w-full py-2">
+            <i class="fa-solid fa-house text-xl mb-1"></i>
+            <span class="text-xs font-semibold">Home</span>
+        </button>
+        <button onclick="switchPage('billing')" id="nav-billing" class="nav-item flex flex-col items-center w-full py-2">
+            <i class="fa-solid fa-file-invoice-dollar text-xl mb-1"></i>
+            <span class="text-xs font-semibold">Billing</span>
+        </button>
+        <button onclick="switchPage('customer')" id="nav-customer" class="nav-item flex flex-col items-center w-full py-2">
+            <i class="fa-solid fa-users text-xl mb-1"></i>
+            <span class="text-xs font-semibold">Customer</span>
+        </button>
+    </nav>
+
+    <!-- Modals -->
+
+    <!-- Today's Customers Modal -->
+    <div id="todays-customers-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[60] hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl w-full max-w-sm h-3/4 flex flex-col shadow-2xl overflow-hidden">
+            <div class="flex justify-between items-center p-4 bg-blue-50 border-b border-gray-200">
+                <h3 class="text-lg font-bold text-blue-800">Today's Supply List</h3>
+                <button onclick="closeTodaysCustomers()" class="text-gray-500 hover:text-gray-800"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            <div id="todays-customers-list" class="p-4 overflow-y-auto space-y-3 flex-1 bg-gray-50">
+                <!-- Data injected here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Employee Modal -->
+    <div id="add-employee-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[60] hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl w-full max-w-sm p-5 shadow-2xl">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-gray-800">Add New Employee</h3>
+                <button onclick="closeAddEmployeeModal()" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            <div class="space-y-3">
+                <input type="text" id="new-emp-name" class="w-full border border-gray-300 rounded-lg p-2 focus:border-blue-500 outline-none" placeholder="Employee Name (e.g. Hasan)">
+                <button onclick="saveEmployee()" class="w-full bg-blue-600 text-white font-bold py-2 rounded-lg shadow-md hover:bg-blue-700">Add</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Assign Work (Select Customers) Modal -->
+    <div id="assign-work-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[60] hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div class="bg-white rounded-t-2xl sm:rounded-2xl w-full max-w-md h-[80vh] flex flex-col shadow-2xl overflow-hidden">
+            <div class="flex justify-between items-center p-4 bg-blue-600 text-white">
+                <div>
+                    <h3 class="text-lg font-bold">Send to Work</h3>
+                    <p class="text-xs text-blue-100" id="assign-emp-name-display"></p>
+                </div>
+                <button onclick="closeAssignWork()" class="text-white opacity-80 hover:opacity-100"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            
+            <div class="p-3 bg-yellow-50 text-yellow-800 text-xs text-center border-b border-yellow-200">
+                <i class="fa-solid fa-circle-info mr-1"></i> Customer select kore Send e click korun
+            </div>
+
+            <div id="assign-customer-list" class="p-4 overflow-y-auto space-y-2 flex-1 bg-gray-50">
+                <!-- Checkboxes injected here -->
+            </div>
+
+            <div class="p-4 border-t border-gray-200 bg-white">
+                <button onclick="generateAndShareWorkList()" class="w-full bg-green-600 text-white font-bold py-3 rounded-xl shadow-lg hover:bg-green-700 transition flex justify-center items-center">
+                    <i class="fa-brands fa-whatsapp text-xl mr-2"></i> Send / Share List
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Employee Delete Confirmation Modal -->
+    <div id="delete-employee-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[60] hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl w-full max-w-xs p-5 shadow-2xl text-center">
+            <div class="text-red-500 mb-3">
+                <i class="fa-solid fa-triangle-exclamation text-4xl"></i>
+            </div>
+            <h3 class="text-lg font-bold text-gray-800 mb-2">Delete Employee?</h3>
+            <p class="text-sm text-gray-600 mb-5">Apni ki sotti ei employee ke delete korte chan?</p>
+            <div class="flex space-x-3">
+                <button onclick="closeDeleteEmployeeModal()" class="flex-1 bg-gray-200 text-gray-800 font-bold py-2 rounded-lg hover:bg-gray-300 transition">Cancel</button>
+                <button onclick="confirmDeleteEmployee()" class="flex-1 bg-red-600 text-white font-bold py-2 rounded-lg shadow-md hover:bg-red-700 transition">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Work Status Modal -->
+    <div id="work-status-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[60] hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl w-full max-w-xs p-5 shadow-2xl text-center">
+            <h3 class="text-lg font-bold text-gray-800 mb-4">Update Work Status</h3>
+            <div class="flex flex-col space-y-3">
+                <button onclick="updateWorkStatus('Complete')" class="w-full bg-green-500 text-white font-bold py-3 rounded-lg shadow hover:bg-green-600 transition">Complete</button>
+                <button onclick="updateWorkStatus('Not Complete')" class="w-full bg-red-500 text-white font-bold py-3 rounded-lg shadow hover:bg-red-600 transition">Not Complete</button>
+                <button onclick="closeWorkStatusModal()" class="w-full mt-2 text-gray-500 font-semibold py-2 hover:bg-gray-100 rounded-lg transition">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Employee Details Modal -->
+    <div id="employee-details-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[60] hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl w-full max-w-md max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+            <div class="flex justify-between items-center p-4 bg-blue-50 border-b border-gray-200">
+                <h3 class="text-lg font-bold text-blue-800"><i class="fa-solid fa-user-tie mr-2"></i><span id="detail-emp-name"></span></h3>
+                <button onclick="closeEmployeeDetails()" class="text-gray-500 hover:text-gray-800"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            <div class="p-4 bg-white border-b border-gray-100">
+                <h4 class="font-bold text-gray-700 text-sm">Last 7 Days Record</h4>
+            </div>
+            <div id="emp-history-list" class="p-4 overflow-y-auto space-y-3 flex-1 bg-gray-50">
+                <!-- Data injected here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Manual Billing Calendar Modal -->
+    <div id="manual-billing-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[60] hidden flex items-end sm:items-center justify-center p-0 sm:p-4 transition-opacity">
+        <div class="bg-white rounded-t-2xl sm:rounded-2xl w-full max-w-md h-[85vh] sm:h-auto sm:max-h-[90vh] flex flex-col shadow-2xl transform transition-all overflow-hidden">
+            <div class="flex justify-between items-center p-4 border-b border-gray-100 bg-blue-50">
+                <h3 class="text-lg font-bold text-blue-800"><i class="fa-regular fa-calendar-check mr-2"></i>Select Billing Dates</h3>
+                <button onclick="closeManualBillingCalendar()" class="text-gray-400 hover:text-gray-600 bg-white rounded-full w-8 h-8 flex items-center justify-center shadow-sm">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <div class="overflow-y-auto p-4 flex-1">
+                <!-- Legend -->
+                <div class="flex flex-wrap justify-center gap-3 mb-4 text-xs font-semibold text-gray-600 border-b pb-3">
+                    <div class="flex items-center"><div class="w-3 h-3 rounded-full bg-blue-400 opacity-50 mr-1 shadow-inner"></div> Paid</div>
+                    <div class="flex items-center"><div class="w-3 h-3 rounded-full bg-green-500 mr-1"></div> Selected</div>
+                    <div class="flex items-center"><div class="w-3 h-3 rounded-full bg-white border-2 border-green-500 mr-1"></div> Unselected</div>
+                    <div class="flex items-center"><div class="w-3 h-3 rounded-full bg-red-500 mr-1"></div> Future</div>
+                </div>
+                <!-- Calendars -->
+                <div id="manual-calendar-container">
+                    <!-- Calendars will be generated here -->
+                </div>
+            </div>
+            <div class="p-4 border-t border-gray-200 bg-white">
+                <button onclick="confirmManualSelection()" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl shadow-lg hover:bg-blue-700 transition">
+                    Confirm Selection (<span id="manual-select-count">0</span> Days)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden Template for Generating Shareable Image -->
+    <div id="share-receipt-container" style="position: absolute; left: -9999px; top: 0;">
+        <div id="share-receipt" class="bg-white p-6" style="width: 400px; font-family: sans-serif; border: 2px solid #e5e7eb; border-radius: 8px;">
+            <div style="text-align: center; border-bottom: 2px dashed #9ca3af; padding-bottom: 10px; margin-bottom: 15px;">
+                <h2 style="margin: 0; color: #2563eb; font-size: 24px; font-weight: bold;">WS Company Ltd.</h2>
+                <p style="margin: 5px 0 0 0; color: #4b5563; font-size: 14px;">Authorized by: Boss</p>
+                <div style="display: flex; justify-content: space-between; margin-top: 10px; font-size: 12px; color: #6b7280;">
+                    <span id="receipt-date"></span>
+                    <span id="receipt-time"></span>
+                </div>
+            </div>
+            <div style="background-color: #eff6ff; padding: 10px; border-radius: 6px; margin-bottom: 15px;">
+                <p style="margin: 0; font-weight: bold; color: #1e3a8a;">Assigned To: <span id="receipt-emp-name"></span></p>
+            </div>
+            <h3 style="font-size: 16px; margin: 0 0 10px 0; color: #374151;">Customer List:</h3>
+            <ul id="receipt-customer-list" style="list-style-type: none; padding: 0; margin: 0; gap: 10px; display: flex; flex-direction: column;">
+                <!-- List injected here -->
+            </ul>
+            <div style="margin-top: 20px; text-align: center; font-size: 11px; color: #9ca3af;">
+                Generated by WS Company App
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden Template for Generating Shareable Bill / Cash Memo -->
+    <div id="bill-receipt-container" style="position: absolute; left: -9999px; top: 0;">
+        <div id="bill-receipt" class="bg-white p-6" style="width: 400px; font-family: sans-serif; border: 2px solid #e5e7eb; border-radius: 8px;">
+            <div style="text-align: center; border-bottom: 2px dashed #9ca3af; padding-bottom: 10px; margin-bottom: 15px;">
+                <h2 style="margin: 0; color: #2563eb; font-size: 24px; font-weight: bold;">WS Company Ltd.</h2>
+                <p style="margin: 5px 0 0 0; color: #4b5563; font-size: 14px;">Cash Memo / Bill</p>
+                <div style="display: flex; justify-content: space-between; margin-top: 10px; font-size: 12px; color: #6b7280;">
+                    <span id="bill-receipt-date"></span>
+                    <span id="bill-receipt-status">Status: Unpaid</span>
+                </div>
+            </div>
+            <div style="background-color: #f9fafb; padding: 10px; border-radius: 6px; margin-bottom: 15px; border: 1px solid #e5e7eb;">
+                <p style="margin: 0 0 5px 0; font-weight: bold; color: #1f2937;">Billed To: <span id="bill-receipt-cust-name" style="color:#2563eb;"></span></p>
+                <p style="margin: 0; font-size: 13px; color: #4b5563;" id="bill-receipt-details"></p>
+            </div>
+            
+            <h3 style="font-size: 14px; margin: 0 0 10px 0; color: #374151;">Water Supply Dates:</h3>
+            <div id="bill-receipt-dates" style="display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 15px; font-size: 11px;">
+                <!-- Dates injected here -->
+            </div>
+            
+            <div style="border-top: 2px solid #e5e7eb; padding-top: 10px; display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-weight: bold; color: #374151; font-size: 16px;">Total Amount:</span>
+                <span id="bill-receipt-amount" style="font-weight: bold; color: #2563eb; font-size: 20px;"></span>
+            </div>
+            <div style="margin-top: 20px; text-align: center; font-size: 11px; color: #9ca3af;">
+                Generated by WS Company App
+            </div>
+        </div>
+    </div>
+
+    <!-- Add / Edit Customer Modal -->
+    <div id="add-customer-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[60] hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl w-full max-w-sm p-5 shadow-2xl transform transition-all">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="modal-title" class="text-lg font-bold text-gray-800">Add New Customer</h3>
+                <button onclick="closeAddCustomerModal()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-sm text-gray-600 mb-1">Customer Name <span class="text-red-500">*</span></label>
+                    <input type="text" id="new-cust-name" class="w-full border border-gray-300 rounded-lg p-2 focus:border-blue-500 outline-none" placeholder="e.g. John Doe">
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-600 mb-1">Frequency <span class="text-red-500">*</span></label>
+                    <select id="new-cust-freq" class="w-full border border-gray-300 rounded-lg p-2 focus:border-blue-500 outline-none">
+                        <option value="Daily">Daily</option>
+                        <option value="1 Day Interval">1 Day Interval</option>
+                        <option value="2 Days Interval">2 Days Interval</option>
+                        <option value="3 Days Interval">3 Days Interval</option>
+                        <option value="4 Days Interval">4 Days Interval</option>
+                        <option value="5 Days Interval">5 Days Interval</option>
+                    </select>
+                </div>
+                <button id="save-btn" onclick="saveCustomer()" class="w-full bg-blue-600 text-white font-bold py-2 rounded-lg shadow-md hover:bg-blue-700 transition mt-4">
+                    Save
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="delete-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[60] hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl w-full max-w-xs p-5 shadow-2xl text-center">
+            <div class="text-red-500 mb-3">
+                <i class="fa-solid fa-triangle-exclamation text-4xl"></i>
+            </div>
+            <h3 class="text-lg font-bold text-gray-800 mb-2">Delete Customer?</h3>
+            <p class="text-sm text-gray-600 mb-5">Apni ki sotti ei customer ke delete korte chan? Eta ar firiye ana jabe na.</p>
+            <div class="flex space-x-3">
+                <button onclick="closeDeleteModal()" class="flex-1 bg-gray-200 text-gray-800 font-bold py-2 rounded-lg hover:bg-gray-300 transition">Cancel</button>
+                <button onclick="confirmDelete()" class="flex-1 bg-red-600 text-white font-bold py-2 rounded-lg shadow-md hover:bg-red-700 transition">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Customer Details & Calendar Modal -->
+    <div id="customer-details-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[60] hidden flex items-end sm:items-center justify-center p-0 sm:p-4 transition-opacity">
+        <div class="bg-white rounded-t-2xl sm:rounded-2xl w-full max-w-md h-[85vh] sm:h-auto sm:max-h-[90vh] flex flex-col shadow-2xl transform transition-all overflow-hidden">
+            <!-- Header -->
+            <div class="flex justify-between items-center p-4 border-b border-gray-100 bg-blue-50">
+                <h3 class="text-lg font-bold text-blue-800"><i class="fa-solid fa-address-card mr-2"></i>Customer Details</h3>
+                <button onclick="closeCustomerDetails()" class="text-gray-400 hover:text-gray-600 bg-white rounded-full w-8 h-8 flex items-center justify-center shadow-sm">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            
+            <div class="overflow-y-auto p-4 flex-1">
+                <!-- Details Section -->
+                <div class="bg-white border border-gray-200 p-4 rounded-xl shadow-sm mb-5">
+                    <h2 id="detail-cust-name" class="text-xl font-bold text-gray-800 mb-2">Name</h2>
+                    <p class="text-sm text-gray-600 mt-2 font-semibold"><i class="fa-solid fa-clock w-5 text-blue-500"></i> Niyom: <span id="detail-cust-freq" class="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-md ml-1"></span></p>
+                </div>
+
+                <!-- Calendar Legend -->
+                <div class="flex items-center justify-center space-x-4 mb-4 text-xs font-semibold text-gray-600 border-b pb-3">
+                    <div class="flex items-center"><div class="w-3 h-3 rounded-full bg-green-500 mr-1"></div> Done / Today</div>
+                    <div class="flex items-center"><div class="w-3 h-3 rounded-full bg-red-500 mr-1"></div> Upcoming</div>
+                </div>
+
+                <!-- Calendars -->
+                <h3 class="font-bold text-gray-700 mb-2">Water Supply Schedule</h3>
+                <div id="calendar-container">
+                    <!-- Calendars will be generated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- JavaScript Logic -->
+<script>
+    // --- GOOGLE SHEETS DATABASE URL ---
+    // Apnar dewa Web App URL ti ekhane set kora holo
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyihSisrZuSrfVjy3Z1hDBUVNcYQeR_sMeQnijNq4BtyLqa_rN7Vc58buMNzmpneRwq/exec"; 
+
+    // Database Sync Functions
+    function saveDataToDatabase() {
+        if(!SCRIPT_URL) return;
+        
+        document.getElementById('loading-overlay').classList.remove('hidden');
+        document.getElementById('loading-overlay').classList.add('flex');
+        
+        const payload = { customers, employees, bills };
+
+        fetch(SCRIPT_URL, {
+            method: 'POST',
+            body: JSON.stringify(payload),
+            // 'no-cors' use korle response read kora jay na, kintu data sheet e chole jay (Google Apps Script er khetre eta beshi stable hoy)
+            mode: 'no-cors', 
+            headers: { "Content-Type": "application/json" }
+        })
+        .then(() => {
+            // mode 'no-cors' thakle ekhane success hobe, kono response body lagbe na
+            document.getElementById('loading-overlay').classList.remove('flex');
+            document.getElementById('loading-overlay').classList.add('hidden');
+        })
+        .catch(err => {
+            console.error(err);
+            document.getElementById('loading-overlay').classList.remove('flex');
+            document.getElementById('loading-overlay').classList.add('hidden');
+        });
+    }
+
+    function loadDataFromDatabase() {
+        if(!SCRIPT_URL) {
+            renderHome(); renderCustomers(); renderBilling();
+            return;
+        }
+        
+        document.getElementById('loading-overlay').classList.remove('hidden');
+        document.getElementById('loading-overlay').classList.add('flex');
+        
+        // Using cors for GET request to receive JSON. 
+        // JSONP could be an alternative but fetch with cors should work if Apps script is setup properly
+        fetch(SCRIPT_URL + "?action=load", {
+            method: 'GET'
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.customers && data.customers.length > 0) customers = data.customers;
+            if(data.employees && data.employees.length > 0) employees = data.employees;
+            if(data.bills && data.bills.length > 0) bills = data.bills;
+            
+            renderHome(); renderCustomers(); renderBilling();
+            
+            document.getElementById('loading-overlay').classList.remove('flex');
+            document.getElementById('loading-overlay').classList.add('hidden');
+        })
+        .catch(err => {
+            console.error("Load Data Error:", err);
+            // alert("Database theke data ashte parchena. Tobe apni offline vabe app use korte parben.");
+            renderHome(); renderCustomers(); renderBilling();
+            
+            document.getElementById('loading-overlay').classList.remove('flex');
+            document.getElementById('loading-overlay').classList.add('hidden');
+        });
+    }
+
+    // Global Time Helper for Kuwait Time (UTC+3)
+    function getKuwaitTime() {
+        const kuwaitStr = new Date().toLocaleString("en-US", {timeZone: "Asia/Kuwait"});
+        return new Date(kuwaitStr);
+    }
+
+    // State / Data Management (Database)
+    let employees = [];
+    let selectedEmployeeForWork = null;
+    let deletingEmployeeId = null;
+    let statusUpdateEmployeeId = null;
+    let editingCustomerId = null;
+    let deletingCustomerId = null;
+
+    let isManualBilling = false;
+    let manualSelectedDates = [];
+    
+    let customers = [];
+    let bills = [];
+
+    // Navigation Logic
+    function switchPage(pageId) {
+        // Hide all pages
+        document.querySelectorAll('.page-content').forEach(page => {
+            page.classList.remove('active');
+        });
+        // Remove active class from all nav items
+        document.querySelectorAll('.nav-item').forEach(nav => {
+            nav.classList.remove('active');
+        });
+
+        // Show selected page
+        document.getElementById(`${pageId}-page`).classList.add('active');
+        document.getElementById(`nav-${pageId}`).classList.add('active');
+
+        // Render data based on page
+        if(pageId === 'home') renderHome();
+        if(pageId === 'customer') renderCustomers();
+        if(pageId === 'billing') renderBilling();
+    }
+
+    // Modal Logic
+    function openAddCustomerModal() {
+        editingCustomerId = null;
+        document.getElementById('modal-title').innerText = "Add New Customer";
+        document.getElementById('save-btn').innerText = "Save";
+        document.getElementById('add-customer-modal').classList.remove('hidden');
+    }
+
+    function openEditCustomer(id) {
+        const c = customers.find(x => x.id === id);
+        if(!c) return;
+        editingCustomerId = id;
+
+        document.getElementById('new-cust-name').value = c.name;
+        document.getElementById('new-cust-freq').value = c.frequency;
+
+        document.getElementById('modal-title').innerText = "Edit Customer";
+        document.getElementById('save-btn').innerText = "Update";
+
+        document.getElementById('add-customer-modal').classList.remove('hidden');
+    }
+
+    function closeAddCustomerModal() {
+        document.getElementById('add-customer-modal').classList.add('hidden');
+        // Clear inputs
+        document.getElementById('new-cust-name').value = '';
+    }
+
+    function saveCustomer() {
+        const name = document.getElementById('new-cust-name').value;
+        const phone = "N/A"; // Form theke bad dewa hoyeche
+        const address = "N/A"; // Form theke bad dewa hoyeche
+        const freq = document.getElementById('new-cust-freq').value;
+
+        if(!name || !name.trim() || !freq) {
+            alert("Customer Name ebang Frequency obosshoi dite hobe!");
+            return;
+        }
+
+        if (editingCustomerId) {
+            // Edit existing customer
+            let c = customers.find(x => x.id === editingCustomerId);
+            c.name = name;
+            c.phone = phone || "N/A";
+            c.address = address || "N/A";
+
+            // Jodi frequency change hoy, history te notun entry add hobe
+            if (c.frequency !== freq) {
+                c.frequency = freq;
+                c.scheduleHistory.push({ frequency: freq, startDate: getKuwaitTime() });
+            }
+        } else {
+            // Add new customer
+            const newCustomer = {
+                id: customers.length > 0 ? Math.max(...customers.map(c => c.id)) + 1 : 1,
+                name: name,
+                phone: phone || "N/A",
+                address: address || "N/A",
+                frequency: freq,
+                scheduleHistory: [{ frequency: freq, startDate: getKuwaitTime() }],
+                lastBilledDate: null // Kono bill ekhono hoyni
+            };
+            customers.push(newCustomer);
+        }
+
+        saveDataToDatabase(); // Update server
+
+        closeAddCustomerModal();
+        renderCustomers(); // Re-render customer list if active
+        renderHome(); // Update stats
+        
+        // Show success simple message
+        let btn = document.getElementById('nav-customer');
+        btn.classList.add('animate-pulse');
+        setTimeout(() => btn.classList.remove('animate-pulse'), 1000);
+    }
+
+    // Delete Logic
+    function deleteCustomer(id) {
+        deletingCustomerId = id;
+        document.getElementById('delete-modal').classList.remove('hidden');
+    }
+
+    function closeDeleteModal() {
+        document.getElementById('delete-modal').classList.add('hidden');
+        deletingCustomerId = null;
+    }
+
+    function confirmDelete() {
+        if(deletingCustomerId) {
+            customers = customers.filter(c => c.id !== deletingCustomerId);
+            saveDataToDatabase(); // Update server
+            closeDeleteModal();
+            renderCustomers();
+            renderHome(); // Update home stats
+        }
+    }
+
+    // Helper: isSuppliedOnDate (reusable logic)
+    function isSuppliedOnDate(customer, checkDate) {
+        let target = new Date(checkDate);
+        target.setHours(0,0,0,0);
+        
+        let applicableSchedule = null;
+        for(let i = customer.scheduleHistory.length - 1; i >= 0; i--) {
+            let sDate = new Date(customer.scheduleHistory[i].startDate);
+            sDate.setHours(0,0,0,0);
+            if(target >= sDate) {
+                applicableSchedule = customer.scheduleHistory[i];
+                break;
+            }
+        }
+        
+        if(!applicableSchedule) return false;
+        
+        const schedStart = new Date(applicableSchedule.startDate);
+        schedStart.setHours(0,0,0,0);
+        const diffTime = target.getTime() - schedStart.getTime();
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        let freq = applicableSchedule.frequency;
+        
+        if(freq === 'Daily') return true;
+        if(freq === '1 Day Interval' && diffDays % 2 === 0) return true;
+        if(freq === '2 Days Interval' && diffDays % 3 === 0) return true;
+        if(freq === '3 Days Interval' && diffDays % 4 === 0) return true;
+        if(freq === '4 Days Interval' && diffDays % 5 === 0) return true;
+        if(freq === '5 Days Interval' && diffDays % 6 === 0) return true;
+        return false;
+    }
+
+    // Billing Logic
+    function onCustomerSelectForBill() {
+        // Reset manual billing if customer changes or date changes
+        isManualBilling = false;
+        manualSelectedDates = [];
+
+        const custSelect = document.getElementById('bill-customer-select');
+        const custId = custSelect.value;
+        const detailsInput = document.getElementById('bill-details');
+        
+        if(!custId) {
+            detailsInput.value = '';
+            return;
+        }
+
+        const customer = customers.find(c => c.id == custId);
+        if(!customer) return;
+
+        // Determine fromDate (next day after last bill, or start date)
+        let fromDate = new Date(customer.lastBilledDate || customer.scheduleHistory[0].startDate);
+        if (customer.lastBilledDate) {
+            fromDate.setDate(fromDate.getDate() + 1); // Start billing from next day
+        }
+
+        const dateStr = document.getElementById('bill-date').value;
+        const toDate = dateStr ? new Date(dateStr) : getKuwaitTime();
+
+        const fromStr = fromDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+        const toStr = toDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+
+        if (fromDate > toDate) {
+            detailsInput.value = `Already billed up to ${new Date(customer.lastBilledDate).toLocaleDateString('en-GB')}`;
+        } else {
+            detailsInput.value = `Bill from ${fromStr} to ${toStr}`;
+        }
+    }
+
+    // Manual Billing Calendar Logic
+    function openManualBillingCalendar() {
+        const custId = document.getElementById('bill-customer-select').value;
+        if (!custId) {
+            alert("Please select a customer first.");
+            return;
+        }
+        const customer = customers.find(c => c.id == custId);
+        
+        // Populate manual selected dates with all pending dates (Green dates) initially
+        manualSelectedDates = [];
+        const todayReset = getKuwaitTime();
+        todayReset.setHours(0,0,0,0);
+        
+        let fromDate = new Date(customer.lastBilledDate || customer.scheduleHistory[0].startDate);
+        if (customer.lastBilledDate) fromDate.setDate(fromDate.getDate() + 1);
+        fromDate.setHours(0,0,0,0);
+        
+        let curr = new Date(fromDate);
+        while(curr <= todayReset) {
+            if(isSuppliedOnDate(customer, curr)) {
+                manualSelectedDates.push(curr.getTime());
+            }
+            curr.setDate(curr.getDate() + 1);
+        }
+        
+        renderManualCalendars(customer);
+        document.getElementById('manual-billing-modal').classList.remove('hidden');
+    }
+
+    function closeManualBillingCalendar() {
+        document.getElementById('manual-billing-modal').classList.add('hidden');
+    }
+
+    function toggleManualDate(ts) {
+        const index = manualSelectedDates.indexOf(ts);
+        if (index > -1) {
+            manualSelectedDates.splice(index, 1);
+        } else {
+            manualSelectedDates.push(ts);
+        }
+        
+        document.getElementById('manual-select-count').innerText = manualSelectedDates.length;
+        
+        const el = document.getElementById(`manual-date-${ts}`);
+        if (el) {
+            if (manualSelectedDates.includes(ts)) {
+                el.className = "w-8 h-8 mx-auto flex items-center justify-center rounded-full bg-green-500 text-white shadow cursor-pointer transition-colors";
+            } else {
+                el.className = "w-8 h-8 mx-auto flex items-center justify-center rounded-full bg-white text-green-600 border-2 border-green-500 cursor-pointer transition-colors";
+            }
+        }
+    }
+
+    function confirmManualSelection() {
+        isManualBilling = true;
+        document.getElementById('bill-details').value = `Manual Selection: ${manualSelectedDates.length} Days`;
+        closeManualBillingCalendar();
+    }
+
+    function renderManualCalendars(customer) {
+        const container = document.getElementById('manual-calendar-container');
+        const today = getKuwaitTime();
+        
+        let prevMonth = today.getMonth() - 1;
+        let prevYear = today.getFullYear();
+        if(prevMonth < 0) {
+            prevMonth = 11;
+            prevYear--;
+        }
+
+        container.innerHTML = buildManualMonthHtml(prevYear, prevMonth, customer, today) + buildManualMonthHtml(today.getFullYear(), today.getMonth(), customer, today);
+        document.getElementById('manual-select-count').innerText = manualSelectedDates.length;
+    }
+
+    function buildManualMonthHtml(year, month, customer, today) {
+        const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const firstDay = new Date(year, month, 1).getDay();
+
+        let html = `<div class="mb-5 bg-gray-50 p-3 rounded-xl border border-gray-200 shadow-sm">
+            <h4 class="text-center font-bold text-gray-700 mb-3">${monthNames[month]} ${year}</h4>
+            <div class="grid grid-cols-7 gap-1 text-center text-xs font-bold text-gray-400 mb-2">
+                <div>Su</div><div>Mo</div><div>Tu</div><div>We</div><div>Th</div><div>Fr</div><div>Sa</div>
+            </div>
+            <div class="grid grid-cols-7 gap-1 text-center text-sm font-medium">`;
+
+        for(let i=0; i<firstDay; i++) {
+            html += `<div></div>`;
+        }
+
+        for(let d=1; d<=daysInMonth; d++) {
+            const cellDate = new Date(year, month, d);
+            cellDate.setHours(0,0,0,0);
+            const ts = cellDate.getTime();
+            
+            const todayReset = new Date(today);
+            todayReset.setHours(0,0,0,0);
+
+            let bgClass = "bg-white text-gray-800 border border-gray-100";
+            let onClickHtml = "";
+            let idHtml = "";
+            
+            if(isSuppliedOnDate(customer, cellDate)) {
+                let isBilled = customer.lastBilledDate && cellDate <= customer.lastBilledDate;
+                let isPending = !isBilled && cellDate <= todayReset;
+                let isFuture = cellDate > todayReset;
+
+                if (isBilled) {
+                    bgClass = "bg-blue-400 text-white opacity-50 shadow-inner cursor-not-allowed";
+                } else if (isPending) {
+                    idHtml = `id="manual-date-${ts}"`;
+                    onClickHtml = `onclick="toggleManualDate(${ts})"`;
+                    if (manualSelectedDates.includes(ts)) {
+                        bgClass = "bg-green-500 text-white shadow cursor-pointer transition-colors";
+                    } else {
+                        bgClass = "bg-white text-green-600 border-2 border-green-500 cursor-pointer transition-colors";
+                    }
+                } else if (isFuture) {
+                    bgClass = "bg-red-500 text-white shadow-sm cursor-not-allowed";
+                }
+            }
+
+            html += `<div ${idHtml} class="w-8 h-8 mx-auto flex items-center justify-center rounded-full ${bgClass}" ${onClickHtml}>${d}</div>`;
+        }
+
+        html += `</div></div>`;
+        return html;
+    }
+
+    // Bill Generation
+    async function generateAndShareBill(event) {
+        const custSelect = document.getElementById('bill-customer-select');
+        const custId = custSelect.value;
+        const amount = document.getElementById('bill-amount').value;
+        const details = document.getElementById('bill-details').value;
+        const billDateStr = document.getElementById('bill-date').value;
+
+        if(!custId || !amount || !billDateStr) {
+            alert("Customer, Amount, ebang Billing Date dite hobe!");
+            return;
+        }
+
+        const customer = customers.find(c => c.id == custId);
+        const billDate = new Date(billDateStr);
+        billDate.setHours(0,0,0,0);
+
+        let fromDate = new Date(customer.lastBilledDate || customer.scheduleHistory[0].startDate);
+        if (customer.lastBilledDate) {
+            fromDate.setDate(fromDate.getDate() + 1);
+        }
+        fromDate.setHours(0,0,0,0);
+
+        if (!isManualBilling && fromDate > billDate) {
+            alert("Sotik date select korun. Ei date er aagei onar bill dewa hoye geche.");
+            return;
+        }
+
+        // Calculate supply dates
+        let suppliedDatesHtml = '';
+        let supplyCount = 0;
+        
+        if (isManualBilling && manualSelectedDates.length > 0) {
+            manualSelectedDates.sort((a,b) => a - b).forEach(ts => {
+                if (ts <= billDate.getTime()) {
+                    let dStr = new Date(ts).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+                    suppliedDatesHtml += `<span style="display: inline-flex; justify-content: center; align-items: center; min-width: 50px; background: #eff6ff; color: #1e3a8a; padding: 4px 8px; border-radius: 6px; border: 1px solid #bfdbfe;">${dStr}</span>`;
+                    supplyCount++;
+                }
+            });
+        } else {
+            let currDate = new Date(fromDate);
+            while(currDate <= billDate) {
+                if (isSuppliedOnDate(customer, currDate)) {
+                    supplyCount++;
+                    let dStr = currDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+                    suppliedDatesHtml += `<span style="display: inline-flex; justify-content: center; align-items: center; min-width: 50px; background: #eff6ff; color: #1e3a8a; padding: 4px 8px; border-radius: 6px; border: 1px solid #bfdbfe;">${dStr}</span>`;
+                }
+                currDate.setDate(currDate.getDate() + 1);
+            }
+        }
+
+        if (supplyCount === 0) {
+            suppliedDatesHtml = `<span style="color: #6b7280; font-style: italic;">No supplies found in this period.</span>`;
+        }
+
+        // Populate hidden bill receipt
+        document.getElementById('bill-receipt-date').innerText = `Date: ${billDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`;
+        document.getElementById('bill-receipt-cust-name').innerText = customer.name;
+        document.getElementById('bill-receipt-details').innerText = details;
+        document.getElementById('bill-receipt-dates').innerHTML = suppliedDatesHtml;
+        document.getElementById('bill-receipt-amount').innerText = amount;
+
+        const btn = event.currentTarget;
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Generating...';
+        btn.disabled = true;
+
+        try {
+            const receiptElement = document.getElementById('bill-receipt');
+            const canvas = await html2canvas(receiptElement, { scale: 2 });
+            
+            canvas.toBlob(async (blob) => {
+                const file = new File([blob], `Bill_${customer.name.replace(/\s+/g, '_')}_${Date.now()}.png`, { type: 'image/png' });
+                
+                let shareSuccess = false;
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    try {
+                        await navigator.share({
+                            title: 'Water Supply Bill',
+                            text: `Bill for ${customer.name}\nAmount: Tk ${amount}`,
+                            files: [file]
+                        });
+                        shareSuccess = true;
+                    } catch (err) {
+                        console.log("Share cancelled or failed.", err);
+                        fallbackDownload(blob, file.name);
+                    }
+                } else {
+                    fallbackDownload(blob, file.name);
+                }
+
+                // Save the bill regardless of share method
+                const newBill = {
+                    id: Math.floor(Math.random() * 10000) + 100,
+                    customerName: customer.name,
+                    amount: amount,
+                    details: details,
+                    date: billDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
+                    status: "Unpaid"
+                };
+                bills.unshift(newBill); // Add to beginning
+                
+                // Update customer's last billed date
+                customer.lastBilledDate = new Date(billDate);
+
+                saveDataToDatabase(); // Update server
+
+                // Reset forms
+                document.getElementById('bill-amount').value = '';
+                document.getElementById('bill-details').value = '';
+                custSelect.value = '';
+                isManualBilling = false;
+                manualSelectedDates = [];
+                
+                renderBilling();
+
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            });
+        } catch (error) {
+            console.error("Error generating image:", error);
+            alert("Bill er image toiri korte somossha hoyeche.");
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    }
+
+    function markBillPaid(billId) {
+        let bill = bills.find(b => b.id === billId);
+        if(bill) {
+            bill.status = "Paid";
+            saveDataToDatabase(); // Update server
+            renderBilling();
+        }
+    }
+
+    // Render Home (Dashboard)
+    function renderHome() {
+        // Calculate Today's Deliveries
+        const todaysDeliveries = getTodaysDeliveries();
+        
+        // Update Single Card
+        document.getElementById('today-delivery-stat').innerText = todaysDeliveries.length;
+        
+        // Render Employees
+        const empList = document.getElementById('employee-list');
+        empList.innerHTML = '';
+
+        if(employees.length === 0) {
+            empList.innerHTML = '<p class="text-sm text-gray-500 text-center py-2">Kono employee nai. + icon e click kore add korun.</p>';
+        }
+
+        employees.forEach((emp) => {
+            let actionBtn = '';
+            if(emp.currentStatus === 'Working') {
+                actionBtn = `<button onclick="event.stopPropagation(); openWorkStatusModal(${emp.id})" class="bg-yellow-500 text-white text-xs px-3 py-2 rounded-lg shadow hover:bg-yellow-600 active:scale-95 transition flex items-center">
+                    <i class="fa-solid fa-spinner fa-spin mr-1.5"></i> Working
+                </button>`;
+            } else {
+                actionBtn = `<button onclick="event.stopPropagation(); openAssignWork(${emp.id})" class="bg-blue-600 text-white text-xs px-3 py-2 rounded-lg shadow hover:bg-blue-700 active:scale-95 transition flex items-center">
+                    <i class="fa-solid fa-paper-plane mr-1.5"></i> Send to Work
+                </button>`;
+            }
+
+            empList.innerHTML += `
+                <div onclick="openEmployeeDetails(${emp.id})" class="flex justify-between items-center bg-gray-50 p-3 rounded-lg border border-gray-200 hover:bg-gray-100 transition cursor-pointer">
+                    <div class="font-bold text-gray-800 text-sm flex items-center">
+                        <div class="bg-blue-100 text-blue-600 w-8 h-8 rounded-full flex items-center justify-center mr-3">
+                            <i class="fa-solid fa-user-tie"></i>
+                        </div>
+                        ${emp.name}
+                    </div>
+                    <div class="flex space-x-2">
+                        ${actionBtn}
+                        <button onclick="event.stopPropagation(); deleteEmployee(${emp.id});" class="bg-red-100 text-red-600 text-xs px-2.5 py-2 rounded-lg shadow-sm hover:bg-red-200 active:scale-95 transition flex items-center">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    // Helper: Get Today's Deliveries
+    function getTodaysDeliveries() {
+        const todayReset = getKuwaitTime();
+        todayReset.setHours(0,0,0,0);
+        
+        return customers.filter(customer => {
+            return isSuppliedOnDate(customer, todayReset);
+        });
+    }
+
+    // Modals Logic for Home Page
+    function openTodaysCustomers() {
+        const deliveries = getTodaysDeliveries();
+        const list = document.getElementById('todays-customers-list');
+        list.innerHTML = '';
+        const now = getKuwaitTime();
+        const todayStr = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+
+        if(deliveries.length === 0) {
+            list.innerHTML = '<p class="text-center text-gray-500 mt-5">Ajke kono supply nai.</p>';
+        } else {
+            deliveries.forEach(c => {
+                let freqColor = c.frequency === 'Daily' ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800';
+                
+                let assignedStatusHtml = '';
+                let completedClass = 'bg-white'; // Default background
+
+                if (c.assignedToday && c.assignedToday.date === todayStr) {
+                    if (c.assignedToday.status === 'Complete') {
+                        assignedStatusHtml = `<p class="text-[11px] font-semibold text-green-600 mt-1.5"><i class="fa-solid fa-check-double mr-1"></i>Completed by: ${c.assignedToday.empName}</p>`;
+                        completedClass = 'opacity-50 bg-gray-50'; // Shadow / faded effect
+                    } else {
+                        assignedStatusHtml = `<p class="text-[11px] font-semibold text-blue-600 mt-1.5"><i class="fa-solid fa-user-check mr-1"></i>Assigned to: ${c.assignedToday.empName}</p>`;
+                    }
+                } else {
+                    assignedStatusHtml = `<p class="text-[11px] font-semibold text-gray-400 mt-1.5"><i class="fa-solid fa-circle-exclamation mr-1"></i>Not Assigned</p>`;
+                }
+
+                list.innerHTML += `
+                    <div class="p-3 rounded-xl border border-gray-200 shadow-sm transition-all duration-300 ${completedClass}">
+                        <div class="flex justify-between items-start mb-1">
+                            <h4 class="font-bold text-gray-800">${c.name}</h4>
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded ${freqColor}">${c.frequency}</span>
+                        </div>
+                        ${assignedStatusHtml}
+                    </div>
+                `;
+            });
+        }
+        document.getElementById('todays-customers-modal').classList.remove('hidden');
+    }
+
+    function closeTodaysCustomers() {
+        document.getElementById('todays-customers-modal').classList.add('hidden');
+    }
+
+    function openAddEmployeeModal() {
+        document.getElementById('add-employee-modal').classList.remove('hidden');
+    }
+
+    function closeAddEmployeeModal() {
+        document.getElementById('add-employee-modal').classList.add('hidden');
+        document.getElementById('new-emp-name').value = '';
+    }
+
+    function saveEmployee() {
+        const name = document.getElementById('new-emp-name').value;
+        if(name.trim() !== '') {
+            employees.push({
+                id: employees.length > 0 ? Math.max(...employees.map(e => e.id)) + 1 : 1,
+                name: name,
+                currentStatus: "Idle",
+                history: []
+            });
+            saveDataToDatabase(); // Update server
+            renderHome();
+            closeAddEmployeeModal();
+        }
+    }
+
+    // Employee Delete Logic
+    function deleteEmployee(id) {
+        deletingEmployeeId = id;
+        document.getElementById('delete-employee-modal').classList.remove('hidden');
+    }
+
+    function closeDeleteEmployeeModal() {
+        document.getElementById('delete-employee-modal').classList.add('hidden');
+        deletingEmployeeId = null;
+    }
+
+    function confirmDeleteEmployee() {
+        if(deletingEmployeeId) {
+            employees = employees.filter(e => e.id !== deletingEmployeeId);
+            saveDataToDatabase(); // Update server
+            closeDeleteEmployeeModal();
+            renderHome();
+        }
+    }
+
+    // Employee Details Logic
+    function openEmployeeDetails(id) {
+        let emp = employees.find(e => e.id === id);
+        if(!emp) return;
+        document.getElementById('detail-emp-name').innerText = emp.name;
+        
+        let list = document.getElementById('emp-history-list');
+        list.innerHTML = '';
+        
+        let recentHistory = [...emp.history].reverse().slice(0, 7); // Last 7 records
+        
+        if(recentHistory.length === 0) {
+            list.innerHTML = '<p class="text-gray-500 text-center text-sm mt-4">Kono kajer record nai.</p>';
+        } else {
+            recentHistory.forEach(h => {
+                let stColor = h.status === 'Complete' ? 'text-green-600 bg-green-100 border-green-200' : 
+                             (h.status === 'Not Complete' ? 'text-red-600 bg-red-100 border-red-200' : 'text-yellow-600 bg-yellow-100 border-yellow-200');
+                
+                list.innerHTML += `
+                    <div class="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex justify-between items-center">
+                        <div>
+                            <div class="font-bold text-sm text-gray-800">${h.date} <span class="text-xs text-gray-500 ml-1 font-normal">${h.time}</span></div>
+                            <div class="text-xs text-gray-600 mt-1"><i class="fa-solid fa-droplet text-blue-500 mr-1"></i> ${h.taskCount} Customers Assigned</div>
+                        </div>
+                        <div class="px-2 py-1 rounded text-xs font-bold border ${stColor}">${h.status}</div>
+                    </div>
+                `;
+            });
+        }
+        document.getElementById('employee-details-modal').classList.remove('hidden');
+    }
+
+    function closeEmployeeDetails() {
+        document.getElementById('employee-details-modal').classList.add('hidden');
+    }
+
+    // Employee Work Status Update Logic
+    function openWorkStatusModal(id) {
+        statusUpdateEmployeeId = id;
+        document.getElementById('work-status-modal').classList.remove('hidden');
+    }
+
+    function closeWorkStatusModal() {
+        document.getElementById('work-status-modal').classList.add('hidden');
+        statusUpdateEmployeeId = null;
+    }
+
+    function updateWorkStatus(statusStr) {
+        let emp = employees.find(e => e.id === statusUpdateEmployeeId);
+        if(emp && emp.history.length > 0) {
+            emp.history[emp.history.length - 1].status = statusStr;
+            emp.currentStatus = "Idle"; // Reset status to idle so they can be assigned again later
+            
+            const now = getKuwaitTime();
+            const todayStr = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+
+            // Re-assign Logic: If task is "Not Complete", free up those customers so they can be assigned to someone else
+            if (statusStr === 'Not Complete') {
+                customers.forEach(c => {
+                    if (c.assignedToday && c.assignedToday.date === todayStr && c.assignedToday.empName === emp.name) {
+                        delete c.assignedToday; // Clear the assignment
+                    }
+                });
+            } else if (statusStr === 'Complete') {
+                // Mark customers as complete
+                customers.forEach(c => {
+                    if (c.assignedToday && c.assignedToday.date === todayStr && c.assignedToday.empName === emp.name) {
+                        c.assignedToday.status = 'Complete';
+                    }
+                });
+            }
+        }
+        saveDataToDatabase(); // Update server
+        closeWorkStatusModal();
+        renderHome();
+    }
+
+    function openAssignWork(empId) {
+        selectedEmployeeForWork = employees.find(e => e.id === empId);
+        document.getElementById('assign-emp-name-display').innerText = `To: ${selectedEmployeeForWork.name}`;
+        
+        const deliveries = getTodaysDeliveries();
+        const list = document.getElementById('assign-customer-list');
+        list.innerHTML = '';
+
+        if(deliveries.length === 0) {
+            list.innerHTML = '<p class="text-center text-gray-500 mt-5">Ajke kono supply nai.</p>';
+        } else {
+            const now = getKuwaitTime();
+            const todayStr = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+
+            deliveries.forEach(c => {
+                let isAssigned = c.assignedToday && c.assignedToday.date === todayStr;
+                let checkboxHtml = '';
+                let assignedLabel = '';
+                let bgClass = 'bg-white hover:bg-gray-50 active:bg-gray-100 cursor-pointer';
+
+                if(isAssigned) {
+                    checkboxHtml = `<input type="checkbox" disabled class="w-5 h-5 text-gray-400 rounded border-gray-300 mr-3 cursor-not-allowed">`;
+                    assignedLabel = `<span class="text-[10px] font-bold bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded ml-2 whitespace-nowrap"><i class="fa-solid fa-user-check mr-1"></i>${c.assignedToday.empName}</span>`;
+                    bgClass = 'bg-gray-50 opacity-70 cursor-not-allowed';
+                } else {
+                    checkboxHtml = `<input type="checkbox" value="${c.id}" class="work-checkbox w-5 h-5 text-blue-600 rounded focus:ring-blue-500 border-gray-300 mr-3 cursor-pointer" checked>`;
+                }
+
+                list.innerHTML += `
+                    <label class="flex items-center p-3 border border-gray-200 rounded-xl shadow-sm ${bgClass}">
+                        ${checkboxHtml}
+                        <div class="flex-1 min-w-0">
+                            <div class="font-bold text-gray-800 text-sm flex items-center flex-wrap">${c.name} ${assignedLabel}</div>
+                        </div>
+                        <div class="text-xs font-semibold bg-gray-100 px-2 py-1 rounded text-gray-600 ml-2 whitespace-nowrap">${c.frequency}</div>
+                    </label>
+                `;
+            });
+        }
+        document.getElementById('assign-work-modal').classList.remove('hidden');
+    }
+
+    function closeAssignWork() {
+        document.getElementById('assign-work-modal').classList.add('hidden');
+    }
+
+    async function generateAndShareWorkList() {
+        // Get checked customers
+        const checkboxes = document.querySelectorAll('.work-checkbox:checked');
+        if(checkboxes.length === 0) {
+            alert("Kono customer select kora hoyni!");
+            return;
+        }
+
+        // Prepare data
+        const selectedIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
+        const selectedCustomers = customers.filter(c => selectedIds.includes(c.id));
+        
+        const now = getKuwaitTime();
+        const dateStr = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
+        // Populate hidden receipt
+        document.getElementById('receipt-date').innerText = `Date: ${dateStr}`;
+        document.getElementById('receipt-time').innerText = `Time: ${timeStr}`;
+        document.getElementById('receipt-emp-name').innerText = selectedEmployeeForWork.name;
+        
+        const rList = document.getElementById('receipt-customer-list');
+        rList.innerHTML = '';
+        selectedCustomers.forEach((c, index) => {
+            // Record assignment for today
+            c.assignedToday = {
+                date: dateStr,
+                empName: selectedEmployeeForWork.name
+            };
+
+            rList.innerHTML += `
+                <li style="background: #f9fafb; padding: 10px; border: 1px solid #e5e7eb; border-radius: 6px; display: flex; align-items: center;">
+                    <div>
+                        <div style="font-weight: bold; font-size: 14px; color: #1f2937;">${c.name}</div>
+                    </div>
+                </li>
+            `;
+        });
+
+        // Generate Image using html2canvas
+        const btn = event.currentTarget;
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Processing...';
+        btn.disabled = true;
+
+        try {
+            const receiptElement = document.getElementById('share-receipt');
+            const canvas = await html2canvas(receiptElement, { scale: 2 });
+            
+            // Set Employee Status to Working
+            selectedEmployeeForWork.currentStatus = 'Working';
+            selectedEmployeeForWork.history.push({
+                date: dateStr,
+                time: timeStr,
+                taskCount: selectedCustomers.length,
+                status: 'Working'
+            });
+            saveDataToDatabase(); // Update server
+            renderHome(); // Update UI immediately
+            
+            canvas.toBlob(async (blob) => {
+                const file = new File([blob], `WS_Task_${selectedEmployeeForWork.name.replace(/\s+/g, '_')}.png`, { type: 'image/png' });
+                
+                // Try Web Share API (Works great on Mobile for WhatsApp/Messenger)
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    try {
+                        await navigator.share({
+                            title: 'Today\'s Work List',
+                            text: `Work list for ${selectedEmployeeForWork.name}`,
+                            files: [file]
+                        });
+                        closeAssignWork();
+                    } catch (err) {
+                        console.log("Share cancelled or failed.", err);
+                        fallbackDownload(blob, file.name);
+                    }
+                } else {
+                    // Fallback for desktop/unsupported browsers: Download the image
+                    fallbackDownload(blob, file.name);
+                }
+                
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            });
+        } catch (error) {
+            console.error("Error generating image:", error);
+            alert("Image toiri korte somossha hoyeche.");
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    }
+
+    function fallbackDownload(blob, filename) {
+        alert("Apnar browser e direct share support kore na, tai image ti download hobe. Download houar por apni WhatsApp e share korte parben.");
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        closeAssignWork();
+    }
+
+    // Render Customers
+    function renderCustomers() {
+        const list = document.getElementById('customer-list');
+        list.innerHTML = '';
+
+        if(customers.length === 0) {
+            list.innerHTML = '<p class="text-center text-gray-500 mt-10">Kono customer nai. Add korun.</p>';
+            return;
+        }
+
+        customers.forEach(c => {
+            let freqColor = c.frequency === 'Daily' ? 'bg-green-100 text-green-800' : 
+                           (c.frequency === '1 Day Interval' ? 'bg-yellow-100 text-yellow-800' : 'bg-orange-100 text-orange-800');
+
+            list.innerHTML += `
+                <div onclick="openCustomerDetails(${c.id})" class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition">
+                    <div>
+                        <h4 class="font-bold text-gray-800">${c.name}</h4>
+                    </div>
+                    <div class="flex flex-col items-end">
+                        <span class="text-xs font-semibold px-2 py-1 rounded-md ${freqColor} mb-2">${c.frequency}</span>
+                        <div class="flex space-x-3 mt-1">
+                            <button onclick="event.stopPropagation(); openEditCustomer(${c.id});" class="text-blue-600 text-sm hover:text-blue-800"><i class="fa-solid fa-pen-to-square"></i></button>
+                            <button onclick="event.stopPropagation(); deleteCustomer(${c.id});" class="text-red-500 text-sm hover:text-red-700"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    // Customer Details & Calendar Logic
+    function openCustomerDetails(id) {
+        const c = customers.find(x => x.id === id);
+        if(!c) return;
+
+        document.getElementById('detail-cust-name').innerText = c.name;
+        document.getElementById('detail-cust-freq').innerText = c.frequency;
+
+        renderCalendars(c);
+
+        document.getElementById('customer-details-modal').classList.remove('hidden');
+    }
+
+    function closeCustomerDetails() {
+        document.getElementById('customer-details-modal').classList.add('hidden');
+    }
+
+    function renderCalendars(customer) {
+        const container = document.getElementById('calendar-container');
+        container.innerHTML = '';
+
+        const today = getKuwaitTime();
+        const currentMonth = today.getMonth();
+        const currentYear = today.getFullYear();
+
+        // Calculate Previous Month
+        let prevMonth = currentMonth - 1;
+        let prevYear = currentYear;
+        if(prevMonth < 0) {
+            prevMonth = 11;
+            prevYear--;
+        }
+
+        // Render previous and current month
+        container.appendChild(buildMonthHtml(prevYear, prevMonth, customer, today));
+        container.appendChild(buildMonthHtml(currentYear, currentMonth, customer, today));
+    }
+
+    function buildMonthHtml(year, month, customer, today) {
+        const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const firstDay = new Date(year, month, 1).getDay(); // 0 (Sun) to 6 (Sat)
+
+        let html = `<div class="mb-5 bg-gray-50 p-3 rounded-xl border border-gray-200 shadow-sm">
+            <h4 class="text-center font-bold text-gray-700 mb-3">${monthNames[month]} ${year}</h4>
+            <div class="grid grid-cols-7 gap-1 text-center text-xs font-bold text-gray-400 mb-2">
+                <div>Su</div><div>Mo</div><div>Tu</div><div>We</div><div>Th</div><div>Fr</div><div>Sa</div>
+            </div>
+            <div class="grid grid-cols-7 gap-1 text-center text-sm font-medium">`;
+
+        // Empty cells for alignment
+        for(let i=0; i<firstDay; i++) {
+            html += `<div></div>`;
+        }
+
+        // Loop through days of the month
+        for(let d=1; d<=daysInMonth; d++) {
+            const cellDate = new Date(year, month, d);
+            cellDate.setHours(0,0,0,0); // reset time for correct comparison
+            
+            const todayReset = new Date(today);
+            todayReset.setHours(0,0,0,0);
+
+            let bgClass = "bg-white text-gray-800 border border-gray-100"; // default unselected
+            
+            // Find applicable schedule for this specific day from history
+            let applicableSchedule = null;
+            for(let i = customer.scheduleHistory.length - 1; i >= 0; i--) {
+                let sDate = new Date(customer.scheduleHistory[i].startDate);
+                sDate.setHours(0,0,0,0);
+                if(cellDate >= sDate) {
+                    applicableSchedule = customer.scheduleHistory[i];
+                    break;
+                }
+            }
+            
+            // Check if schedule starts
+            if(applicableSchedule) {
+                const schedStart = new Date(applicableSchedule.startDate);
+                schedStart.setHours(0,0,0,0);
+                
+                const diffTime = cellDate.getTime() - schedStart.getTime();
+                const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                
+                let isScheduled = false;
+                let freq = applicableSchedule.frequency;
+                
+                if(freq === 'Daily') {
+                    isScheduled = true;
+                } else if(freq === '1 Day Interval' && diffDays % 2 === 0) {
+                    isScheduled = true;
+                } else if(freq === '2 Days Interval' && diffDays % 3 === 0) {
+                    isScheduled = true;
+                } else if(freq === '3 Days Interval' && diffDays % 4 === 0) {
+                    isScheduled = true;
+                } else if(freq === '4 Days Interval' && diffDays % 5 === 0) {
+                    isScheduled = true;
+                } else if(freq === '5 Days Interval' && diffDays % 6 === 0) {
+                    isScheduled = true;
+                }
+
+                // Apply Red / Green color logic
+                if(isScheduled) {
+                    if(cellDate <= todayReset) {
+                        bgClass = "bg-green-500 text-white font-bold shadow"; // Delivered / Today
+                    } else {
+                        bgClass = "bg-red-500 text-white font-bold shadow"; // Upcoming / Future
+                    }
+                }
+            }
+
+            // Highlight exactly today's date with a ring
+            let isTodayStr = (cellDate.getTime() === todayReset.getTime()) ? "ring-2 ring-blue-600 ring-offset-1" : "";
+
+            html += `<div class="w-8 h-8 mx-auto flex items-center justify-center rounded-full ${bgClass} ${isTodayStr}">${d}</div>`;
+        }
+
+        html += `</div></div>`;
+        
+        const div = document.createElement('div');
+        div.innerHTML = html;
+        return div.firstElementChild;
+    }
+
+    // Render Billing
+    function renderBilling() {
+        // Set Default Date to Today (Kuwait Time)
+        const dateInput = document.getElementById('bill-date');
+        if(!dateInput.value) {
+            const kt = getKuwaitTime();
+            const yyyy = kt.getFullYear();
+            const mm = String(kt.getMonth() + 1).padStart(2, '0');
+            const dd = String(kt.getDate()).padStart(2, '0');
+            dateInput.value = `${yyyy}-${mm}-${dd}`;
+        }
+
+        // Populate Customer Dropdown
+        const select = document.getElementById('bill-customer-select');
+        select.innerHTML = '<option value="">Select Customer...</option>';
+        customers.forEach(c => {
+            select.innerHTML += `<option value="${c.id}">${c.name}</option>`;
+        });
+
+        // Populate Bills List
+        const list = document.getElementById('bill-list');
+        list.innerHTML = '';
+
+        if(bills.length === 0) {
+            list.innerHTML = '<p class="text-center text-gray-500 text-sm">Ekhono kono bill banano hoyni.</p>';
+            return;
+        }
+
+        bills.forEach(b => {
+            let isPaid = b.status === "Paid";
+            let statusHtml = isPaid ? 
+                `<span class="text-xs font-bold text-green-600 bg-green-100 px-2 py-1 rounded"><i class="fa-solid fa-check mr-1"></i>Paid</span>` : 
+                `<button onclick="markBillPaid(${b.id})" class="text-xs font-bold text-white bg-red-500 hover:bg-red-600 px-2 py-1 rounded shadow"><i class="fa-solid fa-hand-holding-dollar mr-1"></i>Mark Paid</button>`;
+
+            list.innerHTML += `
+                <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center">
+                    <div>
+                        <div class="font-bold text-gray-800">${b.customerName}</div>
+                        <div class="text-xs text-gray-500">${b.details} | ${b.date}</div>
+                        <div class="text-blue-600 font-bold mt-1">৳ ${b.amount}</div>
+                    </div>
+                    <div>
+                        ${statusHtml}
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    // Realtime Clock Function
+    function updateClock() {
+        const kt = getKuwaitTime();
+        let hours = kt.getHours();
+        let minutes = kt.getMinutes();
+        const ampm = hours >= 12 ? 'pm' : 'am';
+        
+        hours = hours % 12;
+        hours = hours ? hours : 12; // '0' hour ke '12' e convert korbe
+        minutes = minutes < 10 ? '0' + minutes : minutes;
+        
+        const strTime = hours + ':' + minutes + ampm;
+        
+        const clockEl = document.getElementById('realtime-clock');
+        if (clockEl) {
+            clockEl.innerText = strTime;
+        }
+    }
+
+    // Initial Load
+    window.onload = () => {
+        // App chalu holei aage database theke data asbe
+        loadDataFromDatabase();
+        
+        // Start Realtime Clock
+        updateClock();
+        setInterval(updateClock, 1000);
+    };
+
+</script>
+
+</body>
+</html>
