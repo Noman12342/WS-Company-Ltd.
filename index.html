@@ -175,11 +175,19 @@
         <div class="py-4">
             <h2 class="text-lg font-bold text-gray-800 mb-4">Today's Tasks</h2>
             
-            <!-- Single Stat Card for Today's Deliveries -->
-            <div onclick="openTodaysCustomers()" class="bg-blue-100 p-5 rounded-xl shadow-sm border border-blue-200 text-center cursor-pointer hover:bg-blue-200 transition mb-6 active:scale-95 transform duration-150">
-                <div class="text-blue-600 text-4xl font-extrabold" id="today-delivery-stat">0</div>
-                <div class="text-sm text-blue-800 font-bold mt-2">Today's Water Supply</div>
-                <div class="text-xs text-blue-600 mt-1 opacity-80"><i class="fa-solid fa-hand-pointer mr-1"></i>Tap to see customer details</div>
+            <!-- Stats Grid for Supply & Payments -->
+            <div class="grid grid-cols-2 gap-3 mb-6">
+                <!-- Single Stat Card for Today's Deliveries -->
+                <div onclick="openTodaysCustomers()" class="bg-blue-100 p-4 rounded-xl shadow-sm border border-blue-200 text-center cursor-pointer hover:bg-blue-200 transition active:scale-95 transform duration-150 flex flex-col justify-center">
+                    <div class="text-blue-600 text-3xl font-extrabold" id="today-delivery-stat">0</div>
+                    <div class="text-xs text-blue-800 font-bold mt-1">Today's Supply</div>
+                </div>
+
+                <!-- Single Stat Card for Today's Payments -->
+                <div onclick="openTodaysPayments()" class="bg-green-100 p-4 rounded-xl shadow-sm border border-green-200 text-center cursor-pointer hover:bg-green-200 transition active:scale-95 transform duration-150 flex flex-col justify-center">
+                    <div class="text-green-600 text-3xl font-extrabold" id="today-payment-stat">0</div>
+                    <div class="text-xs text-green-800 font-bold mt-1">Today's Payments</div>
+                </div>
             </div>
 
             <!-- Employee Assignment Section -->
@@ -289,6 +297,42 @@
         </div>
     </div>
 
+    <!-- Today's Payments Modal -->
+    <div id="todays-payments-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[60] hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl w-full max-w-sm max-h-[75vh] flex flex-col shadow-2xl overflow-hidden">
+            <div class="flex justify-between items-center p-4 bg-green-50 border-b border-gray-200">
+                <h3 class="text-lg font-bold text-green-800"><i class="fa-solid fa-hand-holding-dollar mr-2"></i>Today's Payments</h3>
+                <button onclick="closeTodaysPayments()" class="text-gray-500 hover:text-gray-800"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            <div id="todays-payments-list" class="p-4 overflow-y-auto flex-1 bg-gray-50">
+                <!-- Data injected here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Dates Selection Modal -->
+    <div id="payment-dates-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[60] hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl w-full max-w-sm flex flex-col shadow-2xl overflow-hidden">
+            <div class="flex justify-between items-center p-4 border-b border-gray-100">
+                <h3 class="text-lg font-bold text-gray-800">Payment Dates</h3>
+                <button onclick="closePaymentDatesModal()" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            <div class="p-4 bg-blue-50 text-center border-b border-blue-100">
+                <p class="text-sm font-bold text-blue-800" id="payment-modal-cust-name"></p>
+                <p class="text-xs text-blue-600 mt-1">Select days of the month for bill collection</p>
+            </div>
+            <div class="p-4 overflow-y-auto max-h-[50vh]">
+                <div id="payment-days-grid" class="grid grid-cols-7 gap-2">
+                    <!-- Days 1-31 injected here -->
+                </div>
+            </div>
+            <div class="p-4 border-t border-gray-200 bg-gray-50">
+                <button onclick="savePaymentDates()" class="w-full bg-green-600 text-white font-bold py-2.5 rounded-xl shadow-md hover:bg-green-700 transition">Save Payment Dates</button>
+            </div>
+        </div>
+    </div>
+
+
     <!-- Add Employee Modal -->
     <div id="add-employee-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[60] hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-sm p-5 shadow-2xl">
@@ -315,7 +359,7 @@
             </div>
             
             <div class="p-3 bg-yellow-50 text-yellow-800 text-xs text-center border-b border-yellow-200">
-                <i class="fa-solid fa-circle-info mr-1"></i> Customer select kore Send e click korun
+                <i class="fa-solid fa-circle-info mr-1"></i> Select customers and click Send
             </div>
 
             <div id="assign-customer-list" class="p-4 overflow-y-auto space-y-2 flex-1 bg-gray-50">
@@ -337,7 +381,7 @@
                 <i class="fa-solid fa-triangle-exclamation text-4xl"></i>
             </div>
             <h3 class="text-lg font-bold text-gray-800 mb-2">Delete Employee?</h3>
-            <p class="text-sm text-gray-600 mb-5">Apni ki sotti ei employee ke delete korte chan?</p>
+            <p class="text-sm text-gray-600 mb-5">Are you sure you want to delete this employee?</p>
             <div class="flex space-x-3">
                 <button onclick="closeDeleteEmployeeModal()" class="flex-1 bg-gray-200 text-gray-800 font-bold py-2 rounded-lg hover:bg-gray-300 transition">Cancel</button>
                 <button onclick="confirmDeleteEmployee()" class="flex-1 bg-red-600 text-white font-bold py-2 rounded-lg shadow-md hover:bg-red-700 transition">Confirm</button>
@@ -498,7 +542,7 @@
                 <i class="fa-solid fa-triangle-exclamation text-4xl"></i>
             </div>
             <h3 class="text-lg font-bold text-gray-800 mb-2">Delete Customer?</h3>
-            <p class="text-sm text-gray-600 mb-5">Apni ki sotti ei customer ke delete korte chan? Eta ar firiye ana jabe na.</p>
+            <p class="text-sm text-gray-600 mb-5">Are you sure you want to delete this customer? This action cannot be undone.</p>
             <div class="flex space-x-3">
                 <button onclick="closeDeleteModal()" class="flex-1 bg-gray-200 text-gray-800 font-bold py-2 rounded-lg hover:bg-gray-300 transition">Cancel</button>
                 <button onclick="confirmDelete()" class="flex-1 bg-red-600 text-white font-bold py-2 rounded-lg shadow-md hover:bg-red-700 transition">Confirm</button>
@@ -521,7 +565,7 @@
                 <!-- Details Section -->
                 <div class="bg-white border border-gray-200 p-4 rounded-xl shadow-sm mb-5">
                     <h2 id="detail-cust-name" class="text-xl font-bold text-gray-800 mb-2">Name</h2>
-                    <p class="text-sm text-gray-600 mt-2 font-semibold"><i class="fa-solid fa-clock w-5 text-blue-500"></i> Niyom: <span id="detail-cust-freq" class="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-md ml-1"></span></p>
+                    <p class="text-sm text-gray-600 mt-2 font-semibold"><i class="fa-solid fa-clock w-5 text-blue-500"></i> Schedule: <span id="detail-cust-freq" class="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-md ml-1"></span></p>
                 </div>
 
                 <!-- Calendar Legend -->
@@ -548,7 +592,7 @@
             </div>
             
             <div class="p-3 bg-yellow-50 text-yellow-800 text-xs text-center border-b border-yellow-200 font-semibold">
-                <i class="fa-solid fa-circle-info mr-1"></i> User er Role o Status change korte Google Sheet use korun.
+                <i class="fa-solid fa-circle-info mr-1"></i> Use Google Sheet to change User Role and Status.
             </div>
 
             <div id="users-list-container" class="p-4 overflow-y-auto space-y-3 flex-1 bg-gray-50">
@@ -617,7 +661,7 @@
 
     // --- GOOGLE SHEETS DATABASE URL ---
     // Apnar dewa notun Web App URL ti ekhane set kora holo
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzI9enYQrMpyujq0pxY4p1HJ4Egd5K3g95tpOTUnXSq4kJ0x6Jbj1kkryYWCLY606j6/exec"; 
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzeieUW6uTAiAA2EmbH216L3k-hP2jgsOrUj1Nc1GG-XnTvdd1pC8C0frldDpvdzRY5/exec"; 
 
     // --- Loading State Handlers ---
     function showLoading(text) {
@@ -755,6 +799,31 @@
 
     let currentUserRole = "Moderator"; // Default fallback
 
+    // --- NEW: Helper for Last Payment Date ---
+    function getLastPaymentDate(paymentDays) {
+        if (!paymentDays || paymentDays.length === 0) return null;
+        const now = getKuwaitTime();
+        const year = now.getFullYear();
+        const month = now.getMonth();
+        const today = now.getDate();
+        const sortedDays = [...paymentDays].sort((a,b) => b-a);
+        
+        for (let i = 0; i < sortedDays.length; i++) {
+            if (sortedDays[i] <= today) {
+                let d = new Date(year, month, sortedDays[i]);
+                if (d.getMonth() !== month) d = new Date(year, month + 1, 0); // Handle short months
+                return d;
+            }
+        }
+        
+        let prevMonth = month - 1;
+        let prevYear = year;
+        if (prevMonth < 0) { prevMonth = 11; prevYear--; }
+        
+        let d = new Date(prevYear, prevMonth, sortedDays[0]);
+        if (d.getMonth() !== prevMonth) d = new Date(prevYear, prevMonth + 1, 0); // Handle short months
+        return d;
+    }
 
     // --- User Management Logic (Boss Only) ---
     function openUserManagement() {
@@ -777,6 +846,28 @@
                         let lastActive = u.lastLogin !== "Never" ? new Date(u.lastLogin).toLocaleString('en-GB', {day: 'numeric', month: 'short', hour: '2-digit', minute:'2-digit'}) : "Never logged in";
                         let todayLogins = u.loginsToday;
 
+                        let actionButtons = '';
+                        if (u.status === 'pending') {
+                            actionButtons = `
+                                <div class="mt-3 flex space-x-2 border-t border-gray-100 pt-2">
+                                    <button onclick="updateUserStatus('${u.email}', 'approved')" class="flex-1 bg-green-100 text-green-700 text-xs py-1.5 rounded-lg shadow-sm hover:bg-green-200 font-bold"><i class="fa-solid fa-check mr-1"></i>Approve</button>
+                                    <button onclick="updateUserStatus('${u.email}', 'rejected')" class="flex-1 bg-red-100 text-red-700 text-xs py-1.5 rounded-lg shadow-sm hover:bg-red-200 font-bold"><i class="fa-solid fa-xmark mr-1"></i>Reject</button>
+                                </div>
+                            `;
+                        } else if (u.status === 'approved') {
+                            actionButtons = `
+                                <div class="mt-3 flex space-x-2 border-t border-gray-100 pt-2">
+                                    <button onclick="updateUserStatus('${u.email}', 'rejected')" class="flex-1 bg-red-50 text-red-600 text-xs py-1.5 rounded-lg border border-red-100 hover:bg-red-100 font-bold"><i class="fa-solid fa-ban mr-1"></i>Revoke Access</button>
+                                </div>
+                            `;
+                        } else {
+                            actionButtons = `
+                                <div class="mt-3 flex space-x-2 border-t border-gray-100 pt-2">
+                                    <button onclick="updateUserStatus('${u.email}', 'approved')" class="flex-1 bg-green-50 text-green-600 text-xs py-1.5 rounded-lg border border-green-100 hover:bg-green-100 font-bold"><i class="fa-solid fa-check-circle mr-1"></i>Restore Access</button>
+                                </div>
+                            `;
+                        }
+
                         list.innerHTML += `
                             <div class="bg-white p-3 rounded-xl border border-gray-200 shadow-sm">
                                 <div class="flex justify-between items-start">
@@ -793,6 +884,7 @@
                                     <span><i class="fa-solid fa-clock-rotate-left mr-1"></i> ${lastActive}</span>
                                     <span class="font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md shadow-sm border border-blue-100"><i class="fa-solid fa-bolt text-yellow-500 mr-1"></i>Today: ${todayLogins}</span>
                                 </div>
+                                ${actionButtons}
                             </div>
                         `;
                     });
@@ -808,6 +900,25 @@
 
     function closeUserManagement() {
         document.getElementById('user-management-modal').classList.add('hidden');
+    }
+
+    function updateUserStatus(email, status) {
+        showLoading("Updating user...");
+        fetch(`${SCRIPT_URL}?action=update_user_status&targetEmail=${encodeURIComponent(email)}&newStatus=${encodeURIComponent(status)}`)
+            .then(res => res.json())
+            .then(data => {
+                hideLoading();
+                if(data.status === 'success') {
+                    openUserManagement(); // Refresh the list automatically
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                hideLoading();
+                alert("Failed to update user.");
+            });
     }
 
     // --- Database Sync Functions ---
@@ -873,6 +984,10 @@
     let isManualBilling = false;
     let manualSelectedDates = [];
     
+    // Payment Dates tracking variables
+    let currentPaymentCustomerId = null;
+    let tempPaymentDays = [];
+    
     let customers = [];
     let bills = [];
 
@@ -932,7 +1047,7 @@
         const freq = document.getElementById('new-cust-freq').value;
 
         if(!name || !name.trim() || !freq) {
-            alert("Customer Name ebang Frequency obosshoi dite hobe!");
+            alert("Customer Name and Frequency are required!");
             return;
         }
 
@@ -957,7 +1072,8 @@
                 address: address || "N/A",
                 frequency: freq,
                 scheduleHistory: [{ frequency: freq, startDate: getKuwaitTime() }],
-                lastBilledDate: null // Kono bill ekhono hoyni
+                lastBilledDate: null,
+                paymentDays: [] // Notun payment tracking array
             };
             customers.push(newCustomer);
         }
@@ -993,6 +1109,52 @@
             renderCustomers();
             renderHome(); // Update home stats
         }
+    }
+
+    // Payment Dates Logic
+    function openPaymentDatesModal(id) {
+        currentPaymentCustomerId = id;
+        const customer = customers.find(c => c.id === id);
+        tempPaymentDays = customer.paymentDays ? [...customer.paymentDays] : [];
+        
+        document.getElementById('payment-modal-cust-name').innerText = customer.name;
+        renderPaymentDaysGrid();
+        
+        document.getElementById('payment-dates-modal').classList.remove('hidden');
+    }
+
+    function renderPaymentDaysGrid() {
+        const grid = document.getElementById('payment-days-grid');
+        grid.innerHTML = '';
+        for(let i=1; i<=31; i++) {
+            let isSelected = tempPaymentDays.includes(i);
+            let bgClass = isSelected ? 'bg-green-500 text-white shadow-inner ring-2 ring-green-300' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-100';
+            grid.innerHTML += `<div onclick="togglePaymentDay(${i})" class="w-10 h-10 mx-auto flex items-center justify-center rounded-lg cursor-pointer font-bold text-sm transition-all ${bgClass}">${i}</div>`;
+        }
+    }
+
+    function togglePaymentDay(day) {
+        if(tempPaymentDays.includes(day)) {
+            tempPaymentDays = tempPaymentDays.filter(d => d !== day);
+        } else {
+            tempPaymentDays.push(day);
+        }
+        renderPaymentDaysGrid();
+    }
+
+    function savePaymentDates() {
+        const customer = customers.find(c => c.id === currentPaymentCustomerId);
+        if(customer) {
+            customer.paymentDays = [...tempPaymentDays].sort((a,b) => a-b);
+            saveDataToDatabase();
+            renderHome(); // Update today's payment numbers
+        }
+        closePaymentDatesModal();
+    }
+
+    function closePaymentDatesModal() {
+        document.getElementById('payment-dates-modal').classList.add('hidden');
+        currentPaymentCustomerId = null;
     }
 
     // Helper: isSuppliedOnDate (reusable logic)
@@ -1203,7 +1365,7 @@
         const billDateStr = document.getElementById('bill-date').value;
 
         if(!custId || !amount || !billDateStr) {
-            alert("Customer, Amount, ebang Billing Date dite hobe!");
+            alert("Customer, Amount, and Billing Date are required!");
             return;
         }
 
@@ -1218,7 +1380,7 @@
         fromDate.setHours(0,0,0,0);
 
         if (!isManualBilling && fromDate > billDate) {
-            alert("Sotik date select korun. Ei date er aagei onar bill dewa hoye geche.");
+            alert("Invalid date. Bill already generated up to this date.");
             return;
         }
 
@@ -1316,7 +1478,7 @@
             });
         } catch (error) {
             console.error("Error generating image:", error);
-            alert("Bill er image toiri korte somossha hoyeche.");
+            alert("Failed to generate bill image.");
             btn.innerHTML = originalText;
             btn.disabled = false;
         }
@@ -1333,18 +1495,20 @@
 
     // Render Home (Dashboard)
     function renderHome() {
-        // Calculate Today's Deliveries
+        // Calculate Today's Deliveries and Payments
         const todaysDeliveries = getTodaysDeliveries();
+        const todaysPayments = getTodaysPayments();
         
-        // Update Single Card
+        // Update Cards
         document.getElementById('today-delivery-stat').innerText = todaysDeliveries.length;
+        document.getElementById('today-payment-stat').innerText = todaysPayments.length;
         
         // Render Employees
         const empList = document.getElementById('employee-list');
         empList.innerHTML = '';
 
         if(employees.length === 0) {
-            empList.innerHTML = '<p class="text-sm text-gray-500 text-center py-2">Kono employee nai.</p>';
+            empList.innerHTML = '<p class="text-sm text-gray-500 text-center py-2">No employees found.</p>';
         }
 
         const isAdmin = currentUserRole === 'Boss';
@@ -1396,6 +1560,12 @@
         });
     }
 
+    // Helper: Get Today's Payments
+    function getTodaysPayments() {
+        const todayDayOfMonth = getKuwaitTime().getDate(); // Aajker tarikh (1-31)
+        return customers.filter(c => c.paymentDays && c.paymentDays.includes(todayDayOfMonth));
+    }
+
     // Modals Logic for Home Page
     function openTodaysCustomers() {
         const deliveries = getTodaysDeliveries();
@@ -1405,7 +1575,7 @@
         const todayStr = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 
         if(deliveries.length === 0) {
-            list.innerHTML = '<p class="text-center text-gray-500 mt-5">Ajke kono supply nai.</p>';
+            list.innerHTML = '<p class="text-center text-gray-500 mt-5">No supply scheduled for today.</p>';
         } else {
             deliveries.forEach(c => {
                 let freqColor = c.frequency === 'Daily' ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800';
@@ -1440,6 +1610,37 @@
 
     function closeTodaysCustomers() {
         document.getElementById('todays-customers-modal').classList.add('hidden');
+    }
+
+    // Today's Payments Modal Logic
+    function openTodaysPayments() {
+        const payments = getTodaysPayments();
+        const list = document.getElementById('todays-payments-list');
+        list.innerHTML = '';
+        
+        if(payments.length === 0) {
+            list.innerHTML = '<p class="text-center text-gray-500 mt-5">No payments scheduled for today.</p>';
+        } else {
+            const isAdmin = currentUserRole === 'Boss';
+            payments.forEach(c => {
+                let billBtnHtml = isAdmin ? `<button onclick="closeTodaysPayments(); switchPage('billing'); setTimeout(() => { document.getElementById('bill-customer-select').value='${c.id}'; onCustomerSelectForBill(); }, 300);" class="text-[10px] uppercase tracking-wider bg-green-100 text-green-700 px-3 py-2 rounded-lg font-bold hover:bg-green-200 transition shadow-sm active:scale-95"><i class="fa-solid fa-file-invoice mr-1"></i>Bill</button>` : '';
+
+                list.innerHTML += `
+                    <div class="p-3 rounded-xl border border-gray-200 shadow-sm bg-white flex justify-between items-center mb-3">
+                        <div>
+                            <div class="font-bold text-gray-800">${c.name}</div>
+                            <div class="text-[10px] text-gray-500 mt-0.5"><i class="fa-solid fa-clock mr-1"></i>Scheduled for today</div>
+                        </div>
+                        ${billBtnHtml}
+                    </div>
+                `;
+            });
+        }
+        document.getElementById('todays-payments-modal').classList.remove('hidden');
+    }
+
+    function closeTodaysPayments() {
+        document.getElementById('todays-payments-modal').classList.add('hidden');
     }
 
     function openAddEmployeeModal() {
@@ -1511,7 +1712,7 @@
         let recentHistory = [...emp.history].reverse().slice(0, 7); // Last 7 records
         
         if(recentHistory.length === 0) {
-            list.innerHTML = '<p class="text-gray-500 text-center text-sm mt-4">Kono kajer record nai.</p>';
+            list.innerHTML = '<p class="text-gray-500 text-center text-sm mt-4">No work records found.</p>';
         } else {
             recentHistory.forEach(h => {
                 list.innerHTML += `
@@ -1541,7 +1742,7 @@
         list.innerHTML = '';
 
         if(deliveries.length === 0) {
-            list.innerHTML = '<p class="text-center text-gray-500 mt-5">Ajke kono supply nai.</p>';
+            list.innerHTML = '<p class="text-center text-gray-500 mt-5">No supply scheduled for today.</p>';
         } else {
             const now = getKuwaitTime();
             const todayStr = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -1589,7 +1790,7 @@
         // Get checked customers
         const checkboxes = document.querySelectorAll('.work-checkbox:checked');
         if(checkboxes.length === 0) {
-            alert("Kono customer select kora hoyni!");
+            alert("No customers selected!");
             return;
         }
 
@@ -1689,14 +1890,14 @@
             });
         } catch (error) {
             console.error("Error generating image:", error);
-            alert("Image toiri korte somossha hoyeche.");
+            alert("Failed to generate image.");
             btn.innerHTML = originalText;
             btn.disabled = false;
         }
     }
 
     function fallbackDownload(blob, filename) {
-        alert("Apnar browser e direct share support kore na, tai image ti download hobe. Download houar por apni WhatsApp e share korte parben.");
+        alert("Your browser doesn't support direct sharing. The image will be downloaded, and you can share it manually.");
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -1710,7 +1911,7 @@
 
     // Render Customers
     function renderCustomers() {
-        // Total customer shongkha update korar jonno
+        // Update total customer count
         const countEl = document.getElementById('total-customers-count');
         if (countEl) {
             countEl.innerText = customers.length;
@@ -1720,7 +1921,7 @@
         list.innerHTML = '';
 
         if(customers.length === 0) {
-            list.innerHTML = '<p class="text-center text-gray-500 mt-10">Kono customer nai.</p>';
+            list.innerHTML = '<p class="text-center text-gray-500 mt-10">No customers found.</p>';
             return;
         }
 
@@ -1730,12 +1931,24 @@
             let freqColor = c.frequency === 'Daily' ? 'bg-green-100 text-green-800' : 
                            (c.frequency === '1 Day Interval' ? 'bg-yellow-100 text-yellow-800' : 'bg-orange-100 text-orange-800');
 
+            // --- Auto Update Last Billed Date Logic ---
+            let lastBilledStr = 'Never';
+            if (c.paymentDays && c.paymentDays.length > 0) {
+                let dynamicLastDate = getLastPaymentDate(c.paymentDays);
+                if (dynamicLastDate) {
+                    lastBilledStr = dynamicLastDate.toLocaleDateString('en-GB', {day: 'numeric', month: 'short', year: 'numeric'});
+                }
+            } else if (c.lastBilledDate) {
+                lastBilledStr = new Date(c.lastBilledDate).toLocaleDateString('en-GB', {day: 'numeric', month: 'short', year: 'numeric'});
+            }
+
             let actionButtons = '';
             if (isAdmin) {
                 actionButtons = `
-                    <div class="flex space-x-3 mt-1">
-                        <button onclick="event.stopPropagation(); openEditCustomer(${c.id});" class="text-blue-600 text-sm hover:text-blue-800"><i class="fa-solid fa-pen-to-square"></i></button>
-                        <button onclick="event.stopPropagation(); deleteCustomer(${c.id});" class="text-red-500 text-sm hover:text-red-700"><i class="fa-solid fa-trash"></i></button>
+                    <div class="flex space-x-4 mt-1">
+                        <button onclick="event.stopPropagation(); openPaymentDatesModal(${c.id});" class="text-green-600 text-sm hover:text-green-800" title="Payment Dates"><i class="fa-solid fa-hand-holding-dollar"></i></button>
+                        <button onclick="event.stopPropagation(); openEditCustomer(${c.id});" class="text-blue-600 text-sm hover:text-blue-800" title="Edit"><i class="fa-solid fa-pen-to-square"></i></button>
+                        <button onclick="event.stopPropagation(); deleteCustomer(${c.id});" class="text-red-500 text-sm hover:text-red-700" title="Delete"><i class="fa-solid fa-trash"></i></button>
                     </div>
                 `;
             }
@@ -1744,6 +1957,7 @@
                 <div onclick="openCustomerDetails(${c.id})" class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition">
                     <div>
                         <h4 class="font-bold text-gray-800">${c.name}</h4>
+                        <p class="text-[10px] text-gray-500 mt-0.5"><i class="fa-solid fa-file-invoice mr-1"></i>Last Billed: <span class="font-semibold">${lastBilledStr}</span></p>
                     </div>
                     <div class="flex flex-col items-end">
                         <span class="text-xs font-semibold px-2 py-1 rounded-md ${freqColor} mb-2">${c.frequency}</span>
@@ -1903,7 +2117,7 @@
         list.innerHTML = '';
 
         if(bills.length === 0) {
-            list.innerHTML = '<p class="text-center text-gray-500 text-sm">Ekhono kono bill banano hoyni.</p>';
+            list.innerHTML = '<p class="text-center text-gray-500 text-sm">No bills created yet.</p>';
             return;
         }
         
