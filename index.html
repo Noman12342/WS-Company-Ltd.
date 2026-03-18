@@ -314,24 +314,27 @@
     <div id="payment-dates-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[60] hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-sm flex flex-col shadow-2xl overflow-hidden">
             <div class="flex justify-between items-center p-4 border-b border-gray-100">
-                <h3 class="text-lg font-bold text-gray-800">Payment Dates</h3>
+                <h3 class="text-lg font-bold text-gray-800">Payment Info</h3>
                 <button onclick="closePaymentDatesModal()" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button>
             </div>
             <div class="p-4 bg-blue-50 text-center border-b border-blue-100">
                 <p class="text-sm font-bold text-blue-800" id="payment-modal-cust-name"></p>
-                <p class="text-xs text-blue-600 mt-1">Select days of the month for bill collection</p>
+                <div class="mt-3 text-left">
+                    <label class="block text-xs font-bold text-gray-700 mb-1">Monthly Bill Amount</label>
+                    <input type="number" id="payment-modal-amount" placeholder="e.g. 500" class="w-full border border-gray-300 rounded-lg p-2 text-sm focus:border-blue-500 outline-none">
+                </div>
+                <p class="text-xs text-blue-600 mt-3 font-semibold">Select days of the month for collection:</p>
             </div>
-            <div class="p-4 overflow-y-auto max-h-[50vh]">
+            <div class="p-4 overflow-y-auto max-h-[40vh]">
                 <div id="payment-days-grid" class="grid grid-cols-7 gap-2">
                     <!-- Days 1-31 injected here -->
                 </div>
             </div>
             <div class="p-4 border-t border-gray-200 bg-gray-50">
-                <button onclick="savePaymentDates()" class="w-full bg-green-600 text-white font-bold py-2.5 rounded-xl shadow-md hover:bg-green-700 transition">Save Payment Dates</button>
+                <button onclick="savePaymentDates()" class="w-full bg-green-600 text-white font-bold py-2.5 rounded-xl shadow-md hover:bg-green-700 transition">Save Payment Info</button>
             </div>
         </div>
     </div>
-
 
     <!-- Add Employee Modal -->
     <div id="add-employee-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[60] hidden flex items-center justify-center p-4">
@@ -385,18 +388,6 @@
             <div class="flex space-x-3">
                 <button onclick="closeDeleteEmployeeModal()" class="flex-1 bg-gray-200 text-gray-800 font-bold py-2 rounded-lg hover:bg-gray-300 transition">Cancel</button>
                 <button onclick="confirmDeleteEmployee()" class="flex-1 bg-red-600 text-white font-bold py-2 rounded-lg shadow-md hover:bg-red-700 transition">Confirm</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Work Status Modal -->
-    <div id="work-status-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[60] hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl w-full max-w-xs p-5 shadow-2xl text-center">
-            <h3 class="text-lg font-bold text-gray-800 mb-4">Update Work Status</h3>
-            <div class="flex flex-col space-y-3">
-                <button onclick="updateWorkStatus('Complete')" class="w-full bg-green-500 text-white font-bold py-3 rounded-lg shadow hover:bg-green-600 transition">Complete</button>
-                <button onclick="updateWorkStatus('Not Complete')" class="w-full bg-red-500 text-white font-bold py-3 rounded-lg shadow hover:bg-red-600 transition">Not Complete</button>
-                <button onclick="closeWorkStatusModal()" class="w-full mt-2 text-gray-500 font-semibold py-2 hover:bg-gray-100 rounded-lg transition">Close</button>
             </div>
         </div>
     </div>
@@ -1073,7 +1064,8 @@
                 frequency: freq,
                 scheduleHistory: [{ frequency: freq, startDate: getKuwaitTime() }],
                 lastBilledDate: null,
-                paymentDays: [] // Notun payment tracking array
+                paymentDays: [], // Notun payment tracking array
+                paymentAmount: "" // Notun amount tracking field
             };
             customers.push(newCustomer);
         }
@@ -1118,6 +1110,7 @@
         tempPaymentDays = customer.paymentDays ? [...customer.paymentDays] : [];
         
         document.getElementById('payment-modal-cust-name').innerText = customer.name;
+        document.getElementById('payment-modal-amount').value = customer.paymentAmount || '';
         renderPaymentDaysGrid();
         
         document.getElementById('payment-dates-modal').classList.remove('hidden');
@@ -1144,8 +1137,10 @@
 
     function savePaymentDates() {
         const customer = customers.find(c => c.id === currentPaymentCustomerId);
+        const amountInput = document.getElementById('payment-modal-amount').value;
         if(customer) {
             customer.paymentDays = [...tempPaymentDays].sort((a,b) => a-b);
+            customer.paymentAmount = amountInput;
             saveDataToDatabase();
             renderHome(); // Update today's payment numbers
         }
@@ -1198,14 +1193,19 @@
         const custSelect = document.getElementById('bill-customer-select');
         const custId = custSelect.value;
         const detailsInput = document.getElementById('bill-details');
+        const amountInput = document.getElementById('bill-amount'); // New amount input
         
         if(!custId) {
             detailsInput.value = '';
+            amountInput.value = ''; // Reset
             return;
         }
 
         const customer = customers.find(c => c.id == custId);
         if(!customer) return;
+
+        // Auto-fill amount if saved
+        amountInput.value = customer.paymentAmount || '';
 
         // Determine fromDate (next day after last bill, or start date)
         let fromDate = new Date(customer.lastBilledDate || customer.scheduleHistory[0].startDate);
@@ -1625,10 +1625,12 @@
             payments.forEach(c => {
                 let billBtnHtml = isAdmin ? `<button onclick="closeTodaysPayments(); switchPage('billing'); setTimeout(() => { document.getElementById('bill-customer-select').value='${c.id}'; onCustomerSelectForBill(); }, 300);" class="text-[10px] uppercase tracking-wider bg-green-100 text-green-700 px-3 py-2 rounded-lg font-bold hover:bg-green-200 transition shadow-sm active:scale-95"><i class="fa-solid fa-file-invoice mr-1"></i>Bill</button>` : '';
 
+                let amountDisplay = c.paymentAmount ? `<span class="text-green-600 font-extrabold ml-1 pl-1 border-l border-gray-300">${c.paymentAmount}</span>` : '';
+
                 list.innerHTML += `
                     <div class="p-3 rounded-xl border border-gray-200 shadow-sm bg-white flex justify-between items-center mb-3">
                         <div>
-                            <div class="font-bold text-gray-800">${c.name}</div>
+                            <div class="font-bold text-gray-800 flex items-center">${c.name} ${amountDisplay}</div>
                             <div class="text-[10px] text-gray-500 mt-0.5"><i class="fa-solid fa-clock mr-1"></i>Scheduled for today</div>
                         </div>
                         ${billBtnHtml}
@@ -2142,7 +2144,7 @@
                     <div>
                         <div class="font-bold text-gray-800">${b.customerName}</div>
                         <div class="text-xs text-gray-500">${b.details} | ${b.date}</div>
-                        <div class="text-blue-600 font-bold mt-1">৳ ${b.amount}</div>
+                        <div class="text-blue-600 font-bold mt-1">${b.amount}</div>
                     </div>
                     <div>
                         ${statusHtml}
